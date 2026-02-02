@@ -16,6 +16,8 @@ import BuildingNew from "./pages/BuildingNew";
 import UnitDetail from "./pages/UnitDetail";
 import MeterDetail from "./pages/MeterDetail";
 import ReadMeter from "./pages/ReadMeter";
+import Pricing from "./pages/Pricing";
+import Success from "./pages/Success";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -72,6 +74,8 @@ function AppRoutes() {
       <Route path="/units/:id" element={<ProtectedRoute><UnitDetail /></ProtectedRoute>} />
       <Route path="/meters/:id" element={<ProtectedRoute><MeterDetail /></ProtectedRoute>} />
       <Route path="/read" element={<ProtectedRoute><ReadMeter /></ProtectedRoute>} />
+      <Route path="/pricing" element={<ProtectedRoute><Pricing /></ProtectedRoute>} />
+      <Route path="/success" element={<ProtectedRoute><Success /></ProtectedRoute>} />
 
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
