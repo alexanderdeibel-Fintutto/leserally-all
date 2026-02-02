@@ -23,8 +23,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     description: 'Für den Einstieg',
     priceMonthly: 0,
     priceYearly: 0,
-    priceIdMonthly: 'price_1Sr55p52lqSgjCzeX6tlI5tv',
-    priceIdYearly: 'price_1Sr55p52lqSgjCzeX6tlI5tv',
+    priceIdMonthly: null,
+    priceIdYearly: null,
     productId: null,
     features: [
       'Bis zu 3 Einheiten',
@@ -38,8 +38,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     description: 'Für kleine Vermieter',
     priceMonthly: 9.99,
     priceYearly: 99.90,
-    priceIdMonthly: 'price_1Sr56K52lqSgjCzeqfCfOudX',
-    priceIdYearly: 'price_1Sr56K52lqSgjCzeqfCfOudX',
+    priceIdMonthly: 'price_1Stgdi52lqSgjCzewNmCKWqy',
+    priceIdYearly: 'price_1Stgdi52lqSgjCzewNmCKWqy',
     productId: null,
     features: [
       'Bis zu 10 Einheiten',
@@ -54,8 +54,8 @@ export const PRICING_PLANS: PricingPlan[] = [
     description: 'Für professionelle Vermieter',
     priceMonthly: 24.99,
     priceYearly: 249.90,
-    priceIdMonthly: 'price_1Sr56o52lqSgjCzeRuGrant2',
-    priceIdYearly: 'price_1Sr56o52lqSgjCzeRuGrant2',
+    priceIdMonthly: 'price_1StgdM52lqSgjCzelgTZIRGu',
+    priceIdYearly: 'price_1StgdM52lqSgjCzelgTZIRGu',
     productId: null,
     features: [
       'Bis zu 50 Einheiten',
@@ -65,25 +65,6 @@ export const PRICING_PLANS: PricingPlan[] = [
       'Dokumentenverwaltung',
     ],
     highlighted: true,
-  },
-  {
-    id: 'business',
-    name: 'Enterprise',
-    description: 'Für Hausverwaltungen',
-    priceMonthly: 79.00,
-    priceYearly: 790.00,
-    priceIdMonthly: 'price_1Sr57E52lqSgjCze3iHixnBn',
-    priceIdYearly: 'price_1Sr57E52lqSgjCze3iHixnBn',
-    productId: null,
-    features: [
-      'Unbegrenzte Einheiten',
-      'OCR-Zählererfassung',
-      'Premium Support',
-      'Automatische Nebenkostenabrechnung',
-      'Dokumentenverwaltung',
-      'Multi-User Zugang',
-      'API-Zugriff',
-    ],
   },
 ];
 
