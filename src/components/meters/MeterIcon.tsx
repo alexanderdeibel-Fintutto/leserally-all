@@ -11,16 +11,16 @@ interface MeterIconProps {
 const iconMap = {
   electricity: Zap,
   gas: Flame,
-  cold_water: Droplets,
-  warm_water: Droplets,
+  water_cold: Droplets,
+  water_hot: Droplets,
   heating: Thermometer,
 };
 
 const colorMap: Record<MeterType, string> = {
   electricity: 'bg-meter-electricity text-primary-foreground',
   gas: 'bg-meter-gas text-secondary-foreground',
-  cold_water: 'bg-meter-cold-water text-white',
-  warm_water: 'bg-meter-warm-water text-white',
+  water_cold: 'bg-meter-cold-water text-white',
+  water_hot: 'bg-meter-warm-water text-white',
   heating: 'bg-meter-heating text-white',
 };
 

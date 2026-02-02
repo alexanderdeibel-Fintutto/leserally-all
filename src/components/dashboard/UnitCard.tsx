@@ -13,6 +13,9 @@ interface UnitCardProps {
 }
 
 export function UnitCard({ unit, onAddReading }: UnitCardProps) {
+  const displayName = unit.unit_number || `Einheit ${unit.id.slice(0, 8)}`;
+  const displayAddress = unit.building?.address || null;
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -22,9 +25,9 @@ export function UnitCard({ unit, onAddReading }: UnitCardProps) {
               <Building2 className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <CardTitle className="text-lg">{unit.name}</CardTitle>
-              {unit.address && (
-                <p className="text-sm text-muted-foreground">{unit.address}</p>
+              <CardTitle className="text-lg">{displayName}</CardTitle>
+              {displayAddress && (
+                <p className="text-sm text-muted-foreground">{displayAddress}</p>
               )}
             </div>
           </div>
@@ -64,7 +67,7 @@ export function UnitCard({ unit, onAddReading }: UnitCardProps) {
                   {meter.lastReading ? (
                     <div className="text-right">
                       <p className="font-semibold text-sm">
-                        {meter.lastReading.value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
+                        {meter.lastReading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {format(new Date(meter.lastReading.reading_date), 'dd.MM.yyyy', { locale: de })}

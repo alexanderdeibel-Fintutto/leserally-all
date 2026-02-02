@@ -4,7 +4,7 @@ import { Plus, Building2, ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useUnits } from '@/hooks/useUnits';
+import { useBuildings } from '@/hooks/useBuildings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,9 +19,14 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function Units() {
   const navigate = useNavigate();
-  const { units, isLoading, deleteUnit } = useUnits();
+  const { buildings, isLoading, deleteUnit } = useBuildings();
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Flatten all units across buildings
+  const allUnits = buildings.flatMap(b => 
+    b.units.map(u => ({ ...u, building: b }))
+  );
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -46,23 +51,23 @@ export default function Units() {
     <AppLayout title="Einheiten">
       <Button 
         className="w-full mb-4"
-        onClick={() => navigate('/units/new')}
+        onClick={() => navigate('/buildings/new')}
       >
         <Plus className="w-4 h-4 mr-2" />
-        Neue Einheit anlegen
+        Neues Gebäude anlegen
       </Button>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      ) : units.length === 0 ? (
+      ) : allUnits.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           Noch keine Einheiten angelegt.
         </div>
       ) : (
         <div className="space-y-3">
-          {units.map((unit) => (
+          {allUnits.map((unit) => (
             <Card key={unit.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
@@ -74,9 +79,9 @@ export default function Units() {
                       <Building2 className="w-5 h-5 text-accent-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium">{unit.name}</p>
-                      {unit.address && (
-                        <p className="text-sm text-muted-foreground">{unit.address}</p>
+                      <p className="font-medium">{unit.unit_number}</p>
+                      {unit.building && (
+                        <p className="text-sm text-muted-foreground">{unit.building.name}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
                         {unit.meters.length} Zähler

@@ -14,36 +14,271 @@ export type Database = {
   }
   public: {
     Tables: {
+      buildings: {
+        Row: {
+          address: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          id: string
+          name: string
+          organization_id: string
+          postal_code: string | null
+          total_area: number | null
+          total_units: number | null
+          updated_at: string | null
+          year_built: number | null
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          postal_code?: string | null
+          total_area?: number | null
+          total_units?: number | null
+          updated_at?: string | null
+          year_built?: number | null
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          postal_code?: string | null
+          total_area?: number | null
+          total_units?: number | null
+          updated_at?: string | null
+          year_built?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buildings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          building_id: string | null
+          content_json: Json | null
+          created_at: string | null
+          document_type: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          organization_id: string | null
+          title: string
+          unit_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          building_id?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          document_type?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          organization_id?: string | null
+          title: string
+          unit_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          building_id?: string | null
+          content_json?: Json | null
+          created_at?: string | null
+          document_type?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          organization_id?: string | null
+          title?: string
+          unit_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leases: {
+        Row: {
+          created_at: string | null
+          deposit_amount: number | null
+          end_date: string | null
+          id: string
+          payment_day: number | null
+          rent_amount: number
+          start_date: string
+          status: Database["public"]["Enums"]["lease_status"] | null
+          tenant_id: string | null
+          unit_id: string
+          updated_at: string | null
+          utilities_advance: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          deposit_amount?: number | null
+          end_date?: string | null
+          id?: string
+          payment_day?: number | null
+          rent_amount: number
+          start_date: string
+          status?: Database["public"]["Enums"]["lease_status"] | null
+          tenant_id?: string | null
+          unit_id: string
+          updated_at?: string | null
+          utilities_advance?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          deposit_amount?: number | null
+          end_date?: string | null
+          id?: string
+          payment_day?: number | null
+          rent_amount?: number
+          start_date?: string
+          status?: Database["public"]["Enums"]["lease_status"] | null
+          tenant_id?: string | null
+          unit_id?: string
+          updated_at?: string | null
+          utilities_advance?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leases_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          recipient_id: string | null
+          sender_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          recipient_id?: string | null
+          sender_id?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meter_readings: {
         Row: {
           confidence: number | null
-          created_at: string
+          created_at: string | null
           id: string
           image_url: string | null
+          is_verified: boolean | null
           meter_id: string
           reading_date: string
-          source: string
-          value: number
+          reading_value: number
+          source: Database["public"]["Enums"]["reading_source"] | null
+          submitted_by: string | null
         }
         Insert: {
           confidence?: number | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           image_url?: string | null
+          is_verified?: boolean | null
           meter_id: string
           reading_date?: string
-          source?: string
-          value: number
+          reading_value: number
+          source?: Database["public"]["Enums"]["reading_source"] | null
+          submitted_by?: string | null
         }
         Update: {
           confidence?: number | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           image_url?: string | null
+          is_verified?: boolean | null
           meter_id?: string
           reading_date?: string
-          source?: string
-          value?: number
+          reading_value?: number
+          source?: Database["public"]["Enums"]["reading_source"] | null
+          submitted_by?: string | null
         }
         Relationships: [
           {
@@ -53,32 +288,42 @@ export type Database = {
             referencedRelation: "meters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "meter_readings_submitted_by_fkey"
+            columns: ["submitted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       meters: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
+          installation_date: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
           unit_id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
+          installation_date?: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
           unit_id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
+          installation_date?: string | null
           meter_number?: string
           meter_type?: Database["public"]["Enums"]["meter_type"]
           unit_id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -90,29 +335,288 @@ export type Database = {
           },
         ]
       }
-      units: {
+      operating_cost_items: {
         Row: {
-          address: string | null
-          created_at: string
+          allocation_key: Database["public"]["Enums"]["allocation_key"] | null
+          amount: number
+          cost_type: string
+          created_at: string | null
+          id: string
+          operating_cost_id: string
+        }
+        Insert: {
+          allocation_key?: Database["public"]["Enums"]["allocation_key"] | null
+          amount: number
+          cost_type: string
+          created_at?: string | null
+          id?: string
+          operating_cost_id: string
+        }
+        Update: {
+          allocation_key?: Database["public"]["Enums"]["allocation_key"] | null
+          amount?: number
+          cost_type?: string
+          created_at?: string | null
+          id?: string
+          operating_cost_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_cost_items_operating_cost_id_fkey"
+            columns: ["operating_cost_id"]
+            isOneToOne: false
+            referencedRelation: "operating_costs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operating_costs: {
+        Row: {
+          building_id: string
+          created_at: string | null
+          id: string
+          period_end: string
+          period_start: string
+          status: Database["public"]["Enums"]["cost_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          building_id: string
+          created_at?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          status?: Database["public"]["Enums"]["cost_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          building_id?: string
+          created_at?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          status?: Database["public"]["Enums"]["cost_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operating_costs_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string | null
           id: string
           name: string
-          updated_at: string
+          stripe_customer_id: string | null
+          subscription_plan: string | null
+          type: Database["public"]["Enums"]["org_type"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          stripe_customer_id?: string | null
+          subscription_plan?: string | null
+          type?: Database["public"]["Enums"]["org_type"] | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          stripe_customer_id?: string | null
+          subscription_plan?: string | null
+          type?: Database["public"]["Enums"]["org_type"] | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          organization_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          organization_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          organization_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          building_id: string | null
+          category: Database["public"]["Enums"]["task_category"] | null
+          completed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          priority: Database["public"]["Enums"]["task_priority"] | null
+          status: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          unit_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          building_id?: string | null
+          category?: Database["public"]["Enums"]["task_category"] | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"] | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title: string
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          building_id?: string | null
+          category?: Database["public"]["Enums"]["task_category"] | null
+          completed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          priority?: Database["public"]["Enums"]["task_priority"] | null
+          status?: Database["public"]["Enums"]["task_status"] | null
+          title?: string
+          unit_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          area: number | null
+          building_id: string
+          created_at: string | null
+          floor: number | null
+          id: string
+          rooms: number | null
+          status: Database["public"]["Enums"]["unit_status"] | null
+          type: Database["public"]["Enums"]["unit_type"] | null
+          unit_number: string
+          updated_at: string | null
+        }
+        Insert: {
+          area?: number | null
+          building_id: string
+          created_at?: string | null
+          floor?: number | null
+          id?: string
+          rooms?: number | null
+          status?: Database["public"]["Enums"]["unit_status"] | null
+          type?: Database["public"]["Enums"]["unit_type"] | null
+          unit_number: string
+          updated_at?: string | null
+        }
+        Update: {
+          area?: number | null
+          building_id?: string
+          created_at?: string | null
+          floor?: number | null
+          id?: string
+          rooms?: number | null
+          status?: Database["public"]["Enums"]["unit_status"] | null
+          type?: Database["public"]["Enums"]["unit_type"] | null
+          unit_number?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
-          address?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          name: string
-          updated_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
-          address?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
-          name?: string
-          updated_at?: string
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: []
@@ -122,16 +626,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      user_owns_meter: { Args: { p_meter_id: string }; Returns: boolean }
-      user_owns_unit: { Args: { unit_id: string }; Returns: boolean }
+      get_user_org_id: { Args: { _user_id: string }; Returns: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      user_can_access_building: {
+        Args: { _building_id: string }
+        Returns: boolean
+      }
+      user_can_access_meter: { Args: { _meter_id: string }; Returns: boolean }
+      user_can_access_unit: { Args: { _unit_id: string }; Returns: boolean }
     }
     Enums: {
-      meter_type:
-        | "electricity"
-        | "gas"
-        | "cold_water"
-        | "warm_water"
-        | "heating"
+      allocation_key: "area" | "units" | "persons" | "consumption"
+      app_role: "admin" | "vermieter" | "mieter" | "hausmeister"
+      cost_status: "draft" | "calculated" | "sent"
+      lease_status: "active" | "terminated" | "pending"
+      meter_type: "electricity" | "gas" | "water_cold" | "water_hot" | "heating"
+      org_type: "vermieter" | "hausverwaltung" | "makler"
+      reading_source: "manual" | "ocr" | "api"
+      task_category: "repair" | "maintenance" | "inspection"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "open" | "in_progress" | "completed"
+      unit_status: "rented" | "available" | "maintenance"
+      unit_type: "apartment" | "commercial" | "parking"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -259,7 +781,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      meter_type: ["electricity", "gas", "cold_water", "warm_water", "heating"],
+      allocation_key: ["area", "units", "persons", "consumption"],
+      app_role: ["admin", "vermieter", "mieter", "hausmeister"],
+      cost_status: ["draft", "calculated", "sent"],
+      lease_status: ["active", "terminated", "pending"],
+      meter_type: ["electricity", "gas", "water_cold", "water_hot", "heating"],
+      org_type: ["vermieter", "hausverwaltung", "makler"],
+      reading_source: ["manual", "ocr", "api"],
+      task_category: ["repair", "maintenance", "inspection"],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["open", "in_progress", "completed"],
+      unit_status: ["rented", "available", "maintenance"],
+      unit_type: ["apartment", "commercial", "parking"],
     },
   },
 } as const

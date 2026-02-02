@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Camera, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MeterIcon } from '@/components/meters/MeterIcon';
-import { useUnits } from '@/hooks/useUnits';
+import { useBuildings } from '@/hooks/useBuildings';
 import { METER_TYPE_LABELS, METER_TYPE_UNITS } from '@/types/database';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -21,11 +21,12 @@ import {
 export default function MeterDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { units, isLoading } = useUnits();
+  const { buildings, isLoading } = useBuildings();
 
-  // Find meter across all units
-  const meter = units.flatMap(u => u.meters).find(m => m.id === id);
-  const unit = units.find(u => u.meters.some(m => m.id === id));
+  // Find meter across all buildings/units
+  const allUnits = buildings.flatMap(b => b.units);
+  const meter = allUnits.flatMap(u => u.meters).find(m => m.id === id);
+  const unit = allUnits.find(u => u.meters.some(m => m.id === id));
 
   if (isLoading) {
     return (
@@ -55,7 +56,7 @@ export default function MeterDetail() {
     .reverse()
     .map((reading) => ({
       date: format(new Date(reading.reading_date), 'dd.MM', { locale: de }),
-      value: reading.value,
+      value: reading.reading_value,
     }));
 
   // Calculate consumption for each reading
@@ -63,7 +64,7 @@ export default function MeterDetail() {
     const prev = meter.readings[index + 1];
     return {
       date: format(new Date(reading.reading_date), 'dd.MM', { locale: de }),
-      consumption: reading.value - prev.value,
+      consumption: reading.reading_value - prev.reading_value,
     };
   }).reverse();
 
@@ -91,7 +92,7 @@ export default function MeterDetail() {
                 Nr. {meter.meter_number}
               </p>
               <p className="text-sm text-muted-foreground">
-                {unit.name}
+                {unit.unit_number}
               </p>
             </div>
             <Button onClick={() => navigate(`/read?meter=${meter.id}`)}>
@@ -108,7 +109,7 @@ export default function MeterDetail() {
           <CardContent className="p-4 text-center">
             <p className="text-sm text-muted-foreground">Aktueller Stand</p>
             <p className="text-3xl font-bold text-primary">
-              {meter.lastReading.value.toLocaleString('de-DE')}
+              {meter.lastReading.reading_value.toLocaleString('de-DE')}
               <span className="text-lg font-normal text-muted-foreground ml-2">
                 {METER_TYPE_UNITS[meter.meter_type]}
               </span>
@@ -179,13 +180,13 @@ export default function MeterDetail() {
             <div className="divide-y divide-border">
               {meter.readings.map((reading, index) => {
                 const prev = meter.readings[index + 1];
-                const consumption = prev ? reading.value - prev.value : null;
+                const consumption = prev ? reading.reading_value - prev.reading_value : null;
                 
                 return (
                   <div key={reading.id} className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-medium">
-                        {reading.value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
+                        {reading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {format(new Date(reading.reading_date), 'dd. MMMM yyyy', { locale: de })}

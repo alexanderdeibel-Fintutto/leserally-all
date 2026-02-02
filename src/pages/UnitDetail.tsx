@@ -3,11 +3,11 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, Trash2, Loader2, ChevronRight } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MeterIcon } from '@/components/meters/MeterIcon';
-import { useUnits } from '@/hooks/useUnits';
+import { useBuildings } from '@/hooks/useBuildings';
 import { useToast } from '@/hooks/use-toast';
 import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterType } from '@/types/database';
 import {
@@ -40,7 +40,7 @@ import { de } from 'date-fns/locale';
 export default function UnitDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { units, isLoading, createMeter, deleteMeter } = useUnits();
+  const { buildings, isLoading, createMeter, deleteMeter } = useBuildings();
   const { toast } = useToast();
   
   const [showAddMeter, setShowAddMeter] = useState(false);
@@ -49,7 +49,9 @@ export default function UnitDetail() {
   const [addingMeter, setAddingMeter] = useState(false);
   const [deleteMeterId, setDeleteMeterId] = useState<string | null>(null);
 
-  const unit = units.find(u => u.id === id);
+  // Find unit across all buildings
+  const allUnits = buildings.flatMap(b => b.units);
+  const unit = allUnits.find(u => u.id === id);
 
   const handleAddMeter = async () => {
     if (!meterNumber.trim() || !id) return;
@@ -136,9 +138,9 @@ export default function UnitDetail() {
       </Button>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">{unit.name}</h1>
-        {unit.address && (
-          <p className="text-muted-foreground">{unit.address}</p>
+        <h1 className="text-2xl font-bold">{unit.unit_number}</h1>
+        {unit.building && (
+          <p className="text-muted-foreground">{unit.building.name} - {unit.building.address}</p>
         )}
       </div>
 
@@ -182,7 +184,7 @@ export default function UnitDetail() {
                       </p>
                       {meter.lastReading && (
                         <p className="text-sm">
-                          Letzter Stand: {meter.lastReading.value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
+                          Letzter Stand: {meter.lastReading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
                           <span className="text-muted-foreground ml-1">
                             ({format(new Date(meter.lastReading.reading_date), 'dd.MM.yyyy', { locale: de })})
                           </span>

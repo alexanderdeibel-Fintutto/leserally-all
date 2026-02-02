@@ -12,7 +12,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Units from "./pages/Units";
-import UnitNew from "./pages/UnitNew";
+import BuildingNew from "./pages/BuildingNew";
 import UnitDetail from "./pages/UnitDetail";
 import MeterDetail from "./pages/MeterDetail";
 import ReadMeter from "./pages/ReadMeter";
@@ -67,7 +67,8 @@ function AppRoutes() {
       {/* Protected routes */}
       <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/units" element={<ProtectedRoute><Units /></ProtectedRoute>} />
-      <Route path="/units/new" element={<ProtectedRoute><UnitNew /></ProtectedRoute>} />
+      <Route path="/buildings/new" element={<ProtectedRoute><BuildingNew /></ProtectedRoute>} />
+      <Route path="/units/new" element={<ProtectedRoute><BuildingNew /></ProtectedRoute>} />
       <Route path="/units/:id" element={<ProtectedRoute><UnitDetail /></ProtectedRoute>} />
       <Route path="/meters/:id" element={<ProtectedRoute><MeterDetail /></ProtectedRoute>} />
       <Route path="/read" element={<ProtectedRoute><ReadMeter /></ProtectedRoute>} />

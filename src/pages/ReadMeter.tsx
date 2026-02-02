@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { MeterIcon } from '@/components/meters/MeterIcon';
-import { useUnits } from '@/hooks/useUnits';
+import { useBuildings } from '@/hooks/useBuildings';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterType, MeterWithReadings, UnitWithMeters } from '@/types/database';
+import { METER_TYPE_LABELS, METER_TYPE_UNITS, UnitWithMeters } from '@/types/database';
 import {
   Select,
   SelectContent,
@@ -26,9 +26,12 @@ type Step = 'select' | 'capture' | 'processing' | 'confirm' | 'success';
 export default function ReadMeter() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { units, isLoading, createReading } = useUnits();
+  const { buildings, isLoading, createReading } = useBuildings();
   const { user } = useAuth();
   const { toast } = useToast();
+  
+  // Flatten all units across buildings
+  const units: UnitWithMeters[] = buildings.flatMap(b => b.units);
   
   const [step, setStep] = useState<Step>('select');
   const [selectedUnitId, setSelectedUnitId] = useState<string>('');
@@ -222,7 +225,7 @@ export default function ReadMeter() {
       // Create reading
       await createReading.mutateAsync({
         meter_id: selectedMeterId,
-        value,
+        reading_value: value,
         image_url: imageUrl,
         source: ocrResult ? 'ocr' : 'manual',
         confidence: ocrResult?.confidence,
@@ -263,10 +266,10 @@ export default function ReadMeter() {
       <AppLayout title="Zähler ablesen">
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">
-            Bitte legen Sie zuerst eine Einheit und einen Zähler an.
+            Bitte legen Sie zuerst ein Gebäude und eine Einheit an.
           </p>
-          <Button onClick={() => navigate('/units/new')}>
-            Einheit anlegen
+          <Button onClick={() => navigate('/buildings/new')}>
+            Gebäude anlegen
           </Button>
         </div>
       </AppLayout>
@@ -355,7 +358,7 @@ export default function ReadMeter() {
                 <SelectContent>
                   {units.map((unit) => (
                     <SelectItem key={unit.id} value={unit.id}>
-                      {unit.name}
+                      {unit.unit_number}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -498,58 +501,61 @@ export default function ReadMeter() {
                     <span className="text-lg text-muted-foreground">
                       {METER_TYPE_UNITS[selectedMeter.meter_type]}
                     </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    Korrigieren
+                  </Button>
                 </div>
               )}
 
-              {(isEditing || !ocrResult) && (
-                <div className="space-y-2">
-                  <Label>Zählerstand eingeben</Label>
-                  <div className="flex gap-2 items-center">
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="Wert eingeben"
-                      value={editedValue}
-                      onChange={(e) => setEditedValue(e.target.value)}
-                      className="text-lg"
-                      autoFocus
-                    />
-                    <span className="text-muted-foreground">
-                      {METER_TYPE_UNITS[selectedMeter.meter_type]}
-                    </span>
+              {(!ocrResult || isEditing) && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="readingValue">Zählerstand</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        id="readingValue"
+                        type="text"
+                        inputMode="decimal"
+                        placeholder="Zählerstand eingeben"
+                        value={editedValue}
+                        onChange={(e) => setEditedValue(e.target.value)}
+                        className="text-xl font-bold text-center"
+                      />
+                      <span className="text-muted-foreground">
+                        {METER_TYPE_UNITS[selectedMeter.meter_type]}
+                      </span>
+                    </div>
                   </div>
+                  {ocrResult && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditedValue(ocrResult.value.toString());
+                        setIsEditing(false);
+                      }}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Abbrechen
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <div className="flex gap-3">
+          <div className="space-y-3">
             <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => {
-                setImageFile(null);
-                setImagePreview('');
-                setOcrResult(null);
-                setEditedValue('');
-                setIsEditing(false);
-                setStep('select');
-              }}
-            >
-              Erneut aufnehmen
-            </Button>
-            <Button
-              className="flex-1"
+              className="w-full gradient-primary"
               onClick={handleSave}
-              disabled={!editedValue || saving}
+              disabled={saving || !editedValue}
             >
               {saving ? (
                 <>
@@ -558,10 +564,25 @@ export default function ReadMeter() {
                 </>
               ) : (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Speichern
+                  <Check className="w-5 h-5 mr-2" />
+                  Ablesung speichern
                 </>
               )}
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setStep('select');
+                setImageFile(null);
+                setImagePreview('');
+                setOcrResult(null);
+                setEditedValue('');
+                setIsEditing(false);
+              }}
+            >
+              Neues Foto
             </Button>
           </div>
         </div>
@@ -570,14 +591,14 @@ export default function ReadMeter() {
       {/* Step: Success */}
       {step === 'success' && (
         <div className="py-12 text-center space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-accent flex items-center justify-center">
-            <Check className="w-10 h-10 text-primary" />
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-green-500 flex items-center justify-center">
+            <Check className="w-10 h-10 text-white" />
           </div>
           
           <div>
-            <h2 className="text-xl font-bold mb-2">Ablesung gespeichert!</h2>
+            <h2 className="text-xl font-bold mb-2">Gespeichert!</h2>
             <p className="text-muted-foreground">
-              Der Zählerstand wurde erfolgreich erfasst.
+              Die Ablesung wurde erfolgreich gespeichert.
             </p>
           </div>
         </div>
