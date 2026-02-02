@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Camera, Upload, ArrowLeft, Loader2, Check, Edit, X } from 'lucide-react';
+import { Camera, Upload, ArrowLeft, Loader2, Check, Edit, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -249,9 +250,19 @@ export default function ReadMeter() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center justify-center py-16"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          >
+            <Loader2 className="w-10 h-10 text-primary" />
+          </motion.div>
+          <p className="mt-4 text-muted-foreground">Laden...</p>
+        </motion.div>
       </AppLayout>
     );
   }
@@ -260,14 +271,29 @@ export default function ReadMeter() {
   if (units.length === 0) {
     return (
       <AppLayout title="Zähler ablesen">
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center py-12"
+        >
+          <motion.div 
+            whileHover={{ scale: 1.05 }}
+            className="w-20 h-20 rounded-3xl bg-gradient-to-br from-accent to-accent/50 mx-auto mb-5 flex items-center justify-center shadow-soft"
+          >
+            <Camera className="w-10 h-10 text-muted-foreground" />
+          </motion.div>
+          <p className="text-muted-foreground mb-6 max-w-xs mx-auto">
             Bitte legen Sie zuerst ein Gebäude und eine Einheit an.
           </p>
-          <Button onClick={() => navigate('/buildings/new')}>
-            Gebäude anlegen
-          </Button>
-        </div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button 
+              onClick={() => navigate('/buildings/new')}
+              className="gradient-primary text-primary-foreground font-semibold px-6 rounded-xl shadow-glow"
+            >
+              Gebäude anlegen
+            </Button>
+          </motion.div>
+        </motion.div>
       </AppLayout>
     );
   }
@@ -276,15 +302,21 @@ export default function ReadMeter() {
   if (showCamera) {
     return (
       <div className="fixed inset-0 bg-black z-50 flex flex-col">
-        <div className="p-4 flex justify-between items-center">
-          <Button variant="ghost" size="icon" onClick={stopCamera} className="text-white">
-            <X className="w-6 h-6" />
-          </Button>
-          <span className="text-white font-medium">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 flex justify-between items-center safe-area-pt"
+        >
+          <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+            <Button variant="ghost" size="icon" onClick={stopCamera} className="text-white rounded-xl">
+              <X className="w-6 h-6" />
+            </Button>
+          </motion.div>
+          <span className="text-white font-semibold">
             Zähler fotografieren
           </span>
           <div className="w-10" />
-        </div>
+        </motion.div>
 
         <div className="flex-1 relative">
           <video
@@ -296,24 +328,39 @@ export default function ReadMeter() {
           
           {/* Viewfinder overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-64 h-24 border-2 border-primary rounded-lg animate-pulse-ring" />
+            <motion.div 
+              animate={{ scale: [1, 1.02, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="w-72 h-28 border-2 border-primary rounded-2xl shadow-glow"
+            />
           </div>
           
-          <p className="absolute bottom-24 left-0 right-0 text-center text-white text-sm">
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="absolute bottom-28 left-0 right-0 text-center text-white text-sm px-4"
+          >
             Positionieren Sie die Zähleranzeige im Rahmen
-          </p>
+          </motion.p>
         </div>
 
-        <div className="p-6 bg-black/50">
-          <Button 
-            size="lg" 
-            className="w-full gradient-primary"
-            onClick={capturePhoto}
-          >
-            <Camera className="w-5 h-5 mr-2" />
-            Foto aufnehmen
-          </Button>
-        </div>
+        <motion.div 
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          className="p-6 bg-gradient-to-t from-black/80 to-transparent safe-area-pb"
+        >
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.95 }}>
+            <Button 
+              size="lg" 
+              className="w-full h-14 gradient-primary text-primary-foreground font-semibold rounded-2xl shadow-glow text-base"
+              onClick={capturePhoto}
+            >
+              <Camera className="w-5 h-5 mr-2" />
+              Foto aufnehmen
+            </Button>
+          </motion.div>
+        </motion.div>
 
         <canvas ref={canvasRef} className="hidden" />
       </div>
@@ -322,283 +369,354 @@ export default function ReadMeter() {
 
   return (
     <AppLayout>
-      <Button
-        variant="ghost"
-        className="mb-4 -ml-2"
-        onClick={() => step === 'select' ? navigate(-1) : setStep('select')}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Zurück
-      </Button>
+        <Button
+          variant="ghost"
+          className="mb-4 -ml-2 rounded-xl hover:bg-accent/80"
+          onClick={() => step === 'select' ? navigate(-1) : setStep('select')}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Zurück
+        </Button>
+      </motion.div>
 
-      {/* Step: Select meter */}
-      {step === 'select' && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Zähler ablesen</h1>
-            <p className="text-muted-foreground">
-              Wählen Sie den Zähler aus, den Sie ablesen möchten.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Einheit</Label>
-              <Select value={selectedUnitId} onValueChange={(v) => {
-                setSelectedUnitId(v);
-                setSelectedMeterId('');
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Einheit auswählen" />
-                </SelectTrigger>
-                <SelectContent>
-                  {units.map((unit) => (
-                    <SelectItem key={unit.id} value={unit.id}>
-                      {unit.unit_number}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      <AnimatePresence mode="wait">
+        {/* Step: Select meter */}
+        {step === 'select' && (
+          <motion.div 
+            key="select"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Zähler ablesen</h1>
+              <p className="text-muted-foreground">
+                Wählen Sie den Zähler aus, den Sie ablesen möchten.
+              </p>
             </div>
 
-            {selectedUnit && (
-              <div className="space-y-2">
-                <Label>Zähler</Label>
-                {selectedUnit.meters.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Diese Einheit hat noch keine Zähler.
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {selectedUnit.meters.map((meter) => (
-                      <Card 
-                        key={meter.id}
-                        className={`cursor-pointer transition-colors ${
-                          selectedMeterId === meter.id 
-                            ? 'ring-2 ring-primary' 
-                            : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => setSelectedMeterId(meter.id)}
-                      >
-                        <CardContent className="p-3 flex items-center gap-3">
-                          <MeterIcon type={meter.meter_type} size="sm" />
-                          <div className="flex-1">
-                            <p className="font-medium text-sm">
-                              {METER_TYPE_LABELS[meter.meter_type]}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Nr. {meter.meter_number}
-                            </p>
-                          </div>
-                          {selectedMeterId === meter.id && (
-                            <Check className="w-5 h-5 text-primary" />
-                          )}
-                        </CardContent>
-                      </Card>
+            <div className="space-y-4">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="space-y-2"
+              >
+                <Label className="text-sm font-medium">Einheit</Label>
+                <Select value={selectedUnitId} onValueChange={(v) => {
+                  setSelectedUnitId(v);
+                  setSelectedMeterId('');
+                }}>
+                  <SelectTrigger className="h-12 rounded-xl border-border/50 bg-background/50">
+                    <SelectValue placeholder="Einheit auswählen" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {units.map((unit) => (
+                      <SelectItem key={unit.id} value={unit.id} className="rounded-lg">
+                        {unit.unit_number}
+                      </SelectItem>
                     ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+                  </SelectContent>
+                </Select>
+              </motion.div>
 
-          {canProceed && (
-            <div className="space-y-3">
-              <Button 
-                className="w-full gradient-primary"
-                onClick={startCamera}
-              >
-                <Camera className="w-5 h-5 mr-2" />
-                Foto aufnehmen
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="w-full"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-5 h-5 mr-2" />
-                Aus Galerie wählen
-              </Button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileSelect}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Step: Processing */}
-      {step === 'processing' && (
-        <div className="py-12 text-center space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-2xl gradient-primary flex items-center justify-center">
-            <Loader2 className="w-10 h-10 text-primary-foreground animate-spin" />
-          </div>
-          
-          <div>
-            <h2 className="text-xl font-bold mb-2">Analysiere Bild...</h2>
-            <p className="text-muted-foreground">
-              Die KI erkennt den Zählerstand automatisch.
-            </p>
-          </div>
-
-          <Progress value={progress} className="max-w-xs mx-auto" />
-        </div>
-      )}
-
-      {/* Step: Confirm */}
-      {step === 'confirm' && selectedMeter && (
-        <div className="space-y-6">
-          <div className="text-center">
-            <h2 className="text-xl font-bold mb-2">Ergebnis bestätigen</h2>
-            <p className="text-muted-foreground">
-              Prüfen Sie den erkannten Wert und korrigieren Sie ihn bei Bedarf.
-            </p>
-          </div>
-
-          {imagePreview && (
-            <div className="rounded-xl overflow-hidden">
-              <img 
-                src={imagePreview} 
-                alt="Zählerfoto" 
-                className="w-full h-48 object-cover"
-              />
-            </div>
-          )}
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <MeterIcon type={selectedMeter.meter_type} />
-                <div>
-                  <p className="font-medium">
-                    {METER_TYPE_LABELS[selectedMeter.meter_type]}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Nr. {selectedMeter.meter_number}
-                  </p>
-                </div>
-              </div>
-
-              {ocrResult && !isEditing && (
-                <div className="text-center py-4">
-                  <p className="text-sm text-muted-foreground mb-1">
-                    Erkannter Wert ({Math.round(ocrResult.confidence)}% Konfidenz)
-                  </p>
-                  <div className="flex items-center justify-center gap-2">
-                    <p className="text-4xl font-bold text-primary">
-                      {ocrResult.value.toLocaleString('de-DE')}
+              {selectedUnit && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="space-y-2"
+                >
+                  <Label className="text-sm font-medium">Zähler</Label>
+                  {selectedUnit.meters.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Diese Einheit hat noch keine Zähler.
                     </p>
-                    <span className="text-lg text-muted-foreground">
-                      {METER_TYPE_UNITS[selectedMeter.meter_type]}
-                    </span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Korrigieren
-                  </Button>
-                </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {selectedUnit.meters.map((meter, index) => (
+                        <motion.div
+                          key={meter.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <Card 
+                            className={`cursor-pointer transition-all glass-card border-0 ${
+                              selectedMeterId === meter.id 
+                                ? 'ring-2 ring-primary shadow-glow' 
+                                : 'hover:bg-accent/50 card-elevated'
+                            }`}
+                            onClick={() => setSelectedMeterId(meter.id)}
+                          >
+                            <CardContent className="p-4 flex items-center gap-4">
+                              <MeterIcon type={meter.meter_type} size="sm" />
+                              <div className="flex-1">
+                                <p className="font-semibold text-sm">
+                                  {METER_TYPE_LABELS[meter.meter_type]}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Nr. {meter.meter_number}
+                                </p>
+                              </div>
+                              {selectedMeterId === meter.id && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center"
+                                >
+                                  <Check className="w-4 h-4 text-primary-foreground" />
+                                </motion.div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
               )}
+            </div>
 
-              {(!ocrResult || isEditing) && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="readingValue">Zählerstand</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        id="readingValue"
-                        type="text"
-                        inputMode="decimal"
-                        placeholder="Zählerstand eingeben"
-                        value={editedValue}
-                        onChange={(e) => setEditedValue(e.target.value)}
-                        className="text-xl font-bold text-center"
-                      />
-                      <span className="text-muted-foreground">
+            {canProceed && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    className="w-full h-14 gradient-primary text-primary-foreground font-semibold rounded-2xl shadow-glow text-base"
+                    onClick={startCamera}
+                  >
+                    <Camera className="w-5 h-5 mr-2" />
+                    Foto aufnehmen
+                  </Button>
+                </motion.div>
+                
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-12 rounded-xl border-2 border-dashed"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="w-5 h-5 mr-2" />
+                    Aus Galerie wählen
+                  </Button>
+                </motion.div>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Step: Processing */}
+        {step === 'processing' && (
+          <motion.div 
+            key="processing"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            className="py-12 text-center space-y-6"
+          >
+            <motion.div 
+              animate={{ 
+                rotate: [0, 360],
+                scale: [1, 1.1, 1]
+              }}
+              transition={{ 
+                rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+                scale: { duration: 1, repeat: Infinity }
+              }}
+              className="w-24 h-24 mx-auto rounded-3xl gradient-primary flex items-center justify-center shadow-glow"
+            >
+              <Sparkles className="w-12 h-12 text-primary-foreground" />
+            </motion.div>
+            
+            <div>
+              <h2 className="text-xl font-bold mb-2">Analysiere Bild...</h2>
+              <p className="text-muted-foreground">
+                Die KI erkennt den Zählerstand automatisch.
+              </p>
+            </div>
+
+            <div className="max-w-xs mx-auto">
+              <Progress value={progress} className="h-2 rounded-full" />
+              <p className="text-sm text-muted-foreground mt-2">{progress}%</p>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step: Confirm */}
+        {step === 'confirm' && selectedMeter && (
+          <motion.div 
+            key="confirm"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-6"
+          >
+            <div className="text-center">
+              <h2 className="text-xl font-bold mb-2">Ergebnis bestätigen</h2>
+              <p className="text-muted-foreground">
+                Prüfen Sie den erkannten Wert und korrigieren Sie ihn bei Bedarf.
+              </p>
+            </div>
+
+            {imagePreview && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-2xl overflow-hidden shadow-lg"
+              >
+                <img 
+                  src={imagePreview} 
+                  alt="Zählerfoto" 
+                  className="w-full h-48 object-cover"
+                />
+              </motion.div>
+            )}
+
+            <Card className="glass-card border-0">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4 mb-5">
+                  <MeterIcon type={selectedMeter.meter_type} />
+                  <div>
+                    <p className="font-semibold">
+                      {METER_TYPE_LABELS[selectedMeter.meter_type]}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Nr. {selectedMeter.meter_number}
+                    </p>
+                  </div>
+                </div>
+
+                {ocrResult && !isEditing && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center py-6 bg-gradient-to-br from-accent/50 to-accent/20 rounded-2xl"
+                  >
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Erkannter Wert ({Math.round(ocrResult.confidence)}% Konfidenz)
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-5xl font-bold text-gradient">
+                        {ocrResult.value.toLocaleString('de-DE')}
+                      </p>
+                      <span className="text-lg text-muted-foreground">
                         {METER_TYPE_UNITS[selectedMeter.meter_type]}
                       </span>
                     </div>
-                  </div>
-                  {ocrResult && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditedValue(ocrResult.value.toString());
-                        setIsEditing(false);
-                      }}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Abbrechen
-                    </Button>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="mt-4 rounded-xl"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Bearbeiten
+                      </Button>
+                    </motion.div>
+                  </motion.div>
+                )}
 
-          <div className="space-y-3">
-            <Button
-              className="w-full gradient-primary"
-              onClick={handleSave}
-              disabled={saving || !editedValue}
+                {(isEditing || !ocrResult) && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-4"
+                  >
+                    <Label className="text-sm font-medium">Zählerstand eingeben</Label>
+                    <Input
+                      type="text"
+                      inputMode="decimal"
+                      value={editedValue}
+                      onChange={(e) => setEditedValue(e.target.value)}
+                      placeholder="z.B. 12345.67"
+                      className="h-14 text-2xl font-bold text-center rounded-xl border-border/50 bg-background/50"
+                    />
+                    <p className="text-center text-sm text-muted-foreground">
+                      {METER_TYPE_UNITS[selectedMeter.meter_type]}
+                    </p>
+                  </motion.div>
+                )}
+              </CardContent>
+            </Card>
+
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                className="w-full h-14 gradient-primary text-primary-foreground font-semibold rounded-2xl shadow-glow text-base"
+                onClick={handleSave}
+                disabled={saving || !editedValue}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Speichern...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5 mr-2" />
+                    Ablesung speichern
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Step: Success */}
+        {step === 'success' && (
+          <motion.div 
+            key="success"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="py-16 text-center space-y-6"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-success to-success/70 flex items-center justify-center shadow-lg"
             >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Speichern...
-                </>
-              ) : (
-                <>
-                  <Check className="w-5 h-5 mr-2" />
-                  Ablesung speichern
-                </>
-              )}
-            </Button>
+              <CheckCircle2 className="w-14 h-14 text-success-foreground" />
+            </motion.div>
             
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setStep('select');
-                setImageFile(null);
-                setImagePreview('');
-                setOcrResult(null);
-                setEditedValue('');
-                setIsEditing(false);
-              }}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
             >
-              Neues Foto
-            </Button>
-          </div>
-        </div>
-      )}
+              <h2 className="text-2xl font-bold mb-2">Erfolgreich!</h2>
+              <p className="text-muted-foreground">
+                Die Ablesung wurde gespeichert.
+              </p>
+            </motion.div>
 
-      {/* Step: Success */}
-      {step === 'success' && (
-        <div className="py-12 text-center space-y-6">
-          <div className="w-20 h-20 mx-auto rounded-2xl bg-green-500 flex items-center justify-center">
-            <Check className="w-10 h-10 text-white" />
-          </div>
-          
-          <div>
-            <h2 className="text-xl font-bold mb-2">Gespeichert!</h2>
-            <p className="text-muted-foreground">
-              Die Ablesung wurde erfolgreich gespeichert.
-            </p>
-          </div>
-        </div>
-      )}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+            >
+              <Loader2 className="w-6 h-6 mx-auto animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mt-2">Weiterleitung...</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 }

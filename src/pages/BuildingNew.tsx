@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Building2, MapPin, Hash } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,92 +76,163 @@ export default function BuildingNew() {
 
   return (
     <AppLayout>
-      <Button
-        variant="ghost"
-        className="mb-4 -ml-2"
-        onClick={() => navigate(-1)}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Zurück
-      </Button>
+        <Button
+          variant="ghost"
+          className="mb-4 -ml-2 rounded-xl hover:bg-accent/80"
+          onClick={() => navigate(-1)}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Zurück
+        </Button>
+      </motion.div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Neues Gebäude anlegen</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Gebäudename *</Label>
-              <Input
-                id="name"
-                placeholder="z.B. Hauptstraße 1"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-              />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <Card className="glass-card border-0 overflow-hidden">
+          <CardHeader className="pb-4">
+            <div className="flex items-center gap-3">
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shadow-glow"
+              >
+                <Building2 className="w-6 h-6 text-primary-foreground" />
+              </motion.div>
+              <CardTitle className="text-xl">Neues Gebäude anlegen</CardTitle>
             </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 }}
+                className="space-y-2"
+              >
+                <Label htmlFor="name" className="text-sm font-medium">
+                  Gebäudename *
+                </Label>
+                <div className="relative">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    placeholder="z.B. Hauptstraße 1"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="pl-11 h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
+                    required
+                  />
+                </div>
+              </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Straße & Hausnummer</Label>
-              <Input
-                id="address"
-                placeholder="z.B. Hauptstraße 1"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="space-y-2"
+              >
+                <Label htmlFor="address" className="text-sm font-medium">
+                  Straße & Hausnummer
+                </Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Input
+                    id="address"
+                    placeholder="z.B. Hauptstraße 1"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="pl-11 h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
+                  />
+                </div>
+              </motion.div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="postalCode">PLZ</Label>
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="grid grid-cols-2 gap-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="postalCode" className="text-sm font-medium">PLZ</Label>
+                  <Input
+                    id="postalCode"
+                    placeholder="12345"
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="city" className="text-sm font-medium">Stadt</Label>
+                  <Input
+                    id="city"
+                    placeholder="Berlin"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
+                  />
+                </div>
+              </motion.div>
+
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="border-t border-border/50 pt-5 mt-5"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <Hash className="w-4 h-4 text-primary" />
+                  <Label htmlFor="unitNumber" className="text-sm font-medium">
+                    Erste Einheit (optional)
+                  </Label>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Legen Sie direkt die erste Wohneinheit an
+                </p>
                 <Input
-                  id="postalCode"
-                  placeholder="z.B. 12345"
-                  value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
+                  id="unitNumber"
+                  placeholder="z.B. Wohnung 1 oder EG links"
+                  value={unitNumber}
+                  onChange={(e) => setUnitNumber(e.target.value)}
+                  className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="city">Stadt</Label>
-                <Input
-                  id="city"
-                  placeholder="z.B. Berlin"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </div>
-            </div>
+              </motion.div>
 
-            <div className="border-t pt-4 mt-4">
-              <Label htmlFor="unitNumber">Erste Einheit (optional)</Label>
-              <p className="text-sm text-muted-foreground mb-2">
-                Legen Sie direkt die erste Wohneinheit an
-              </p>
-              <Input
-                id="unitNumber"
-                placeholder="z.B. Wohnung 1 oder EG links"
-                value={unitNumber}
-                onChange={(e) => setUnitNumber(e.target.value)}
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Erstellen...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Gebäude erstellen
-                </>
-              )}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 gradient-primary text-primary-foreground font-semibold rounded-xl shadow-glow text-base" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Erstellen...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5 mr-2" />
+                      Gebäude erstellen
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+            </form>
+          </CardContent>
+        </Card>
+      </motion.div>
     </AppLayout>
   );
 }
