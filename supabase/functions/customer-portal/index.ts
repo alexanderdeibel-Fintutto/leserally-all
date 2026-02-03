@@ -61,9 +61,10 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in customer-portal", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Log detailed error server-side only
+    console.error("[CUSTOMER-PORTAL] ERROR:", error);
+    // Return generic error to client
+    return new Response(JSON.stringify({ error: "Kundenportal konnte nicht geöffnet werden. Bitte versuchen Sie es erneut." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

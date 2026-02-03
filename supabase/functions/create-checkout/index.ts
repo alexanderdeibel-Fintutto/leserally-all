@@ -78,9 +78,10 @@ serve(async (req) => {
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in create-checkout", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    // Log detailed error server-side only
+    console.error("[CREATE-CHECKOUT] ERROR:", error);
+    // Return generic error to client
+    return new Response(JSON.stringify({ error: "Checkout konnte nicht erstellt werden. Bitte versuchen Sie es erneut." }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
