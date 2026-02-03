@@ -8,6 +8,7 @@ export function useOrganization() {
   const queryClient = useQueryClient();
 
   // Create organization and assign user to it
+  // Note: Admin/Vermieter roles are automatically assigned via database trigger
   const createOrganization = useMutation({
     mutationFn: async (data: { name: string; type?: OrgType }) => {
       if (!user) throw new Error('Not authenticated');
@@ -22,27 +23,13 @@ export function useOrganization() {
       if (orgError) throw orgError;
 
       // Update user's profile to link to organization
+      // This triggers assign_org_creator_roles() which adds admin/vermieter roles
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ organization_id: newOrg.id })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
-
-      // Add admin role to creator
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({ user_id: user.id, role: 'admin' });
-
-      // Ignore if role already exists (unique constraint)
-      if (roleError && !roleError.message.includes('duplicate')) {
-        throw roleError;
-      }
-
-      // Add vermieter role as well
-      await supabase
-        .from('user_roles')
-        .insert({ user_id: user.id, role: 'vermieter' });
 
       return newOrg as Organization;
     },
