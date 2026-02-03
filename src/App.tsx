@@ -92,7 +92,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppRoutes />
+        <main className="min-h-screen">
+          <AppRoutes />
+        </main>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
