@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plus, Building2, Hash } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -9,40 +9,21 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useProfile } from '@/hooks/useProfile';
+import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/use-toast';
 import { AddressAutocomplete, AddressData } from '@/components/address/AddressAutocomplete';
 
 export default function BuildingNew() {
   const navigate = useNavigate();
   const { createBuilding, createUnit } = useBuildings();
-  const { profile, isLoading: profileLoading, isVermieter } = useProfile();
+  const { profile } = useProfile();
+  const { createOrganization } = useOrganization();
   const { toast } = useToast();
   
   const [name, setName] = useState('');
   const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [unitNumber, setUnitNumber] = useState('');
   const [loading, setLoading] = useState(false);
-
-  // Redirect if no organization or no permission
-  useEffect(() => {
-    if (!profileLoading && profile) {
-      if (!profile.organization_id) {
-        toast({
-          variant: 'destructive',
-          title: 'Organisation erforderlich',
-          description: 'Bitte erstellen Sie zuerst eine Organisation.',
-        });
-        navigate('/');
-      } else if (!isVermieter) {
-        toast({
-          variant: 'destructive',
-          title: 'Keine Berechtigung',
-          description: 'Sie haben keine Berechtigung, Gebäude zu erstellen.',
-        });
-        navigate('/');
-      }
-    }
-  }, [profile, profileLoading, isVermieter, navigate, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,6 +49,16 @@ export default function BuildingNew() {
     setLoading(true);
     
     try {
+      // Auto-create organization if user doesn't have one yet
+      if (!profile?.organization_id) {
+        const orgName = addressData.city 
+          ? `Meine Immobilien (${addressData.city})`
+          : 'Meine Immobilien';
+        await createOrganization.mutateAsync({ name: orgName });
+        // Wait a moment for the profile to be updated with the new org
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
       // Create building with validated Google address
       const fullAddress = addressData.streetNumber 
         ? `${addressData.street} ${addressData.streetNumber}`
