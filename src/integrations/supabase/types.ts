@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_cross_sell_triggers: {
+        Row: {
+          background_gradient: string | null
+          created_at: string | null
+          cta_text: string
+          cta_url: string | null
+          description: string | null
+          headline: string
+          icon_name: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          priority: number | null
+          source_app_id: string
+          target_app_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          background_gradient?: string | null
+          created_at?: string | null
+          cta_text?: string
+          cta_url?: string | null
+          description?: string | null
+          headline: string
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          priority?: number | null
+          source_app_id: string
+          target_app_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          background_gradient?: string | null
+          created_at?: string | null
+          cta_text?: string
+          cta_url?: string | null
+          description?: string | null
+          headline?: string
+          icon_name?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          priority?: number | null
+          source_app_id?: string
+          target_app_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       buildings: {
         Row: {
           address: string | null
@@ -432,6 +483,54 @@ export type Database = {
           stripe_customer_id?: string | null
           subscription_plan?: string | null
           type?: Database["public"]["Enums"]["org_type"] | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          app_id: string
+          created_at: string | null
+          description: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          name: string
+          price_monthly: number
+          price_yearly: number
+          sort_order: number | null
+          stripe_price_id_monthly: string | null
+          stripe_price_id_yearly: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          app_id: string
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_monthly?: number
+          price_yearly?: number
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          app_id?: string
+          created_at?: string | null
+          description?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_monthly?: number
+          price_yearly?: number
+          sort_order?: number | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_yearly?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }

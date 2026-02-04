@@ -10,6 +10,8 @@ import { useProfile } from '@/hooks/useProfile';
 import { useOrganization } from '@/hooks/useOrganization';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CrossMarketingBanner } from '@/components/dashboard/CrossMarketingBanner';
+import { useProducts } from '@/hooks/useProducts';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,9 @@ export default function Dashboard() {
   const { buildings, isLoading } = useBuildings();
   const { profile, isLoading: profileLoading } = useProfile();
   const { createOrganization } = useOrganization();
+  
+  // Preload products on app start for pricing page and cross-marketing
+  useProducts('zaehler');
   
   const [showSetupDialog, setShowSetupDialog] = useState(false);
   const [orgName, setOrgName] = useState('');
@@ -155,6 +160,9 @@ export default function Dashboard() {
 
   return (
     <AppLayout>
+      {/* Cross-Marketing Banner */}
+      <CrossMarketingBanner className="mb-4" />
+
       {/* Quick Actions */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
