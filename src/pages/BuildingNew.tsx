@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Building2, MapPin, Hash } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Building2, Hash } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/hooks/use-toast';
+import { AddressAutocomplete, AddressData } from '@/components/address/AddressAutocomplete';
 
 export default function BuildingNew() {
   const navigate = useNavigate();
@@ -18,9 +19,7 @@ export default function BuildingNew() {
   const { toast } = useToast();
   
   const [name, setName] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [postalCode, setPostalCode] = useState('');
+  const [addressData, setAddressData] = useState<AddressData | null>(null);
   const [unitNumber, setUnitNumber] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -57,16 +56,29 @@ export default function BuildingNew() {
       return;
     }
 
+    if (!addressData) {
+      toast({
+        variant: 'destructive',
+        title: 'Adresse erforderlich',
+        description: 'Bitte wählen Sie eine gültige Adresse aus der Vorschlagsliste.',
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
-      // Create building
+      // Create building with validated Google address
+      const fullAddress = addressData.streetNumber 
+        ? `${addressData.street} ${addressData.streetNumber}`
+        : addressData.street;
+
       const newBuilding = await createBuilding.mutateAsync({ 
         name: name.trim(), 
-        address: address.trim() || null,
-        city: city.trim() || null,
-        postal_code: postalCode.trim() || null,
-        country: 'DE',
+        address: fullAddress,
+        city: addressData.city,
+        postal_code: addressData.postalCode,
+        country: addressData.country || 'DE',
         total_units: 0,
         total_area: null,
         year_built: null,
@@ -158,49 +170,19 @@ export default function BuildingNew() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="space-y-2"
               >
-                <Label htmlFor="address" className="text-sm font-medium">
-                  Straße & Hausnummer
-                </Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <Input
-                    id="address"
-                    placeholder="z.B. Hauptstraße 1"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="pl-11 h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                  />
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                className="grid grid-cols-2 gap-4"
-              >
-                <div className="space-y-2">
-                  <Label htmlFor="postalCode" className="text-sm font-medium">PLZ</Label>
-                  <Input
-                    id="postalCode"
-                    placeholder="12345"
-                    value={postalCode}
-                    onChange={(e) => setPostalCode(e.target.value)}
-                    className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="text-sm font-medium">Stadt</Label>
-                  <Input
-                    id="city"
-                    placeholder="Berlin"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                  />
-                </div>
+                <AddressAutocomplete
+                  onAddressSelect={setAddressData}
+                  required
+                />
+                {addressData && (
+                  <div className="mt-3 p-3 rounded-xl bg-muted/50 text-sm space-y-1">
+                    <p className="font-medium text-foreground">{addressData.formattedAddress}</p>
+                    <p className="text-muted-foreground text-xs">
+                      {addressData.postalCode} {addressData.city}, {addressData.country}
+                    </p>
+                  </div>
+                )}
               </motion.div>
 
               <motion.div 
