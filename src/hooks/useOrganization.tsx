@@ -13,12 +13,13 @@ export function useOrganization() {
     mutationFn: async (data: { name: string; type?: OrgType }) => {
       if (!user) throw new Error('Not authenticated');
 
-      // Create organization
-      const { data: newOrg, error: orgError } = await supabase
+      // Generate UUID client-side to avoid needing SELECT after INSERT
+      const orgId = crypto.randomUUID();
+
+      // Create organization with explicit ID
+      const { error: orgError } = await supabase
         .from('organizations')
-        .insert(data)
-        .select()
-        .single();
+        .insert({ ...data, id: orgId });
 
       if (orgError) throw orgError;
 
@@ -26,10 +27,19 @@ export function useOrganization() {
       // This triggers assign_org_creator_roles() which adds admin/vermieter roles
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ organization_id: newOrg.id })
+        .update({ organization_id: orgId })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Now we can fetch the org since profile is linked
+      const { data: newOrg, error: fetchError } = await supabase
+        .from('organizations')
+        .select()
+        .eq('id', orgId)
+        .single();
+
+      if (fetchError) throw fetchError;
 
       return newOrg as Organization;
     },
