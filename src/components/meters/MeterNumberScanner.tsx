@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,8 +16,6 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<{ meterNumber: string; confidence: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const processFile = async (file: File) => {
@@ -106,56 +104,66 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
     setError(null);
   };
 
+  const cameraInputId = `camera-input-${Math.random().toString(36).substr(2, 9)}`;
+  const fileInputId = `file-input-${Math.random().toString(36).substr(2, 9)}`;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled || scanning}
-          onClick={() => cameraInputRef.current?.click()}
-          className="flex-1"
+        {/* Camera button using label for better mobile support */}
+        <label
+          htmlFor={cameraInputId}
+          className={cn(
+            "flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors",
+            "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3",
+            "cursor-pointer select-none",
+            (disabled || scanning) && "pointer-events-none opacity-50"
+          )}
         >
           {scanning ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Camera className="w-4 h-4 mr-2" />
+            <Camera className="w-4 h-4" />
           )}
           Foto
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled || scanning}
-          onClick={() => fileInputRef.current?.click()}
-          className="flex-1"
+        </label>
+        
+        {/* Document button using label */}
+        <label
+          htmlFor={fileInputId}
+          className={cn(
+            "flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors",
+            "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3",
+            "cursor-pointer select-none",
+            (disabled || scanning) && "pointer-events-none opacity-50"
+          )}
         >
           {scanning ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <FileText className="w-4 h-4 mr-2" />
+            <FileText className="w-4 h-4" />
           )}
           Dokument
-        </Button>
+        </label>
       </div>
 
-      {/* Hidden file inputs */}
+      {/* File inputs - using label association for better mobile compatibility */}
       <input
-        ref={cameraInputRef}
+        id={cameraInputId}
         type="file"
         accept="image/*"
         capture="environment"
         onChange={handleFileChange}
-        className="hidden"
+        className="sr-only"
+        disabled={disabled || scanning}
       />
       <input
-        ref={fileInputRef}
+        id={fileInputId}
         type="file"
         accept="image/*,application/pdf"
         onChange={handleFileChange}
-        className="hidden"
+        className="sr-only"
+        disabled={disabled || scanning}
       />
 
       {/* Preview and results */}
