@@ -10,6 +10,22 @@
 
 @import url("https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap");
 
+/* Hide Google Maps "Are you the owner of this website?" prompt */
+.pac-container .pac-item-query + .pac-item-query,
+.pac-container::after,
+.gm-err-container,
+.gm-err-title,
+.gm-err-message,
+.dismissButton,
+.pac-logo::after {
+  display: none !important;
+}
+
+/* Hide the Google branding error message */
+div[style*="background-color: rgb(229, 227, 223)"] {
+  display: none !important;
+}
+
 @layer base {
   :root {
     /* Fintutto Vibrant Yellow/Orange Theme */
