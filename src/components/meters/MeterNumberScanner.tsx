@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +17,9 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
   const [result, setResult] = useState<{ meterNumber: string; confidence: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (file: File) => {
     setScanning(true);
@@ -98,71 +101,76 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
     e.target.value = '';
   };
 
+  const openCamera = () => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  };
+
+  const openFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const clearPreview = () => {
     setPreview(null);
     setResult(null);
     setError(null);
   };
 
-  const cameraInputId = `camera-input-${Math.random().toString(36).substr(2, 9)}`;
-  const fileInputId = `file-input-${Math.random().toString(36).substr(2, 9)}`;
-
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        {/* Camera button using label for better mobile support */}
-        <label
-          htmlFor={cameraInputId}
-          className={cn(
-            "flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors",
-            "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3",
-            "cursor-pointer select-none",
-            (disabled || scanning) && "pointer-events-none opacity-50"
-          )}
+        {/* Camera button */}
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          disabled={disabled || scanning}
+          onClick={openCamera}
         >
           {scanning ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
           ) : (
-            <Camera className="w-4 h-4" />
+            <Camera className="w-4 h-4 mr-2" />
           )}
           Foto
-        </label>
+        </Button>
         
-        {/* Document button using label */}
-        <label
-          htmlFor={fileInputId}
-          className={cn(
-            "flex-1 inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors",
-            "border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3",
-            "cursor-pointer select-none",
-            (disabled || scanning) && "pointer-events-none opacity-50"
-          )}
+        {/* Document button */}
+        <Button
+          type="button"
+          variant="outline"
+          className="flex-1"
+          disabled={disabled || scanning}
+          onClick={openFilePicker}
         >
           {scanning ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
           ) : (
-            <FileText className="w-4 h-4" />
+            <FileText className="w-4 h-4 mr-2" />
           )}
           Dokument
-        </label>
+        </Button>
       </div>
 
-      {/* File inputs - using label association for better mobile compatibility */}
+      {/* Hidden file inputs - using direct click instead of label for better compatibility */}
       <input
-        id={cameraInputId}
+        ref={cameraInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture
+        accept="image/*"
+        capture="environment"
         onChange={handleFileChange}
-        className="sr-only"
+        style={{ display: 'none' }}
         disabled={disabled || scanning}
       />
       <input
-        id={fileInputId}
+        ref={fileInputRef}
         type="file"
         accept="image/*,application/pdf"
         onChange={handleFileChange}
-        className="sr-only"
+        style={{ display: 'none' }}
         disabled={disabled || scanning}
       />
 
