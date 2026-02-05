@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Camera } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, Plus, Upload } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MeterIcon } from '@/components/meters/MeterIcon';
+import { AddReadingDialog } from '@/components/meters/AddReadingDialog';
+import { ImportReadingsWizard } from '@/components/meters/ImportReadingsWizard';
 import { useBuildings } from '@/hooks/useBuildings';
 import { METER_TYPE_LABELS, METER_TYPE_UNITS } from '@/types/database';
 import { format } from 'date-fns';
@@ -22,11 +25,17 @@ export default function MeterDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { buildings, isLoading } = useBuildings();
+  
+  const [showAddReading, setShowAddReading] = useState(false);
+  const [showImportWizard, setShowImportWizard] = useState(false);
 
   // Find meter across all buildings/units
   const allUnits = buildings.flatMap(b => b.units);
   const meter = allUnits.flatMap(u => u.meters).find(m => m.id === id);
   const unit = allUnits.find(u => u.meters.some(m => m.id === id));
+  
+  // Get existing reading dates for duplicate detection
+  const existingDates = meter?.readings.map(r => r.reading_date) || [];
 
   if (isLoading) {
     return (
@@ -95,10 +104,16 @@ export default function MeterDetail() {
                 {unit.unit_number}
               </p>
             </div>
-            <Button onClick={() => navigate(`/read?meter=${meter.id}`)}>
-              <Camera className="w-4 h-4 mr-2" />
-              Ablesen
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowAddReading(true)}>
+                <Plus className="w-4 h-4 mr-1" />
+                Manuell
+              </Button>
+              <Button size="sm" onClick={() => navigate(`/read?meter=${meter.id}`)}>
+                <Camera className="w-4 h-4 mr-1" />
+                Foto
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -169,7 +184,13 @@ export default function MeterDetail() {
       {/* Readings History */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Ablesungen</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Ablesungen</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => setShowImportWizard(true)}>
+              <Upload className="w-4 h-4 mr-1" />
+              Import
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {meter.readings.length === 0 ? (
@@ -211,6 +232,24 @@ export default function MeterDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Add Reading Dialog */}
+      <AddReadingDialog
+        open={showAddReading}
+        onOpenChange={setShowAddReading}
+        meterId={meter.id}
+        meterType={meter.meter_type}
+        existingDates={existingDates}
+      />
+
+      {/* Import Wizard */}
+      <ImportReadingsWizard
+        open={showImportWizard}
+        onOpenChange={setShowImportWizard}
+        meterId={meter.id}
+        meterType={meter.meter_type}
+        existingDates={existingDates}
+      />
     </AppLayout>
   );
 }
