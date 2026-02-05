@@ -10,6 +10,7 @@ import { MeterIcon } from '@/components/meters/MeterIcon';
 import { MeterNumberScanner } from '@/components/meters/MeterNumberScanner';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useToast } from '@/hooks/use-toast';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterType } from '@/types/database';
 import {
   Select,
@@ -25,6 +26,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerClose,
+} from '@/components/ui/drawer';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,6 +52,7 @@ export default function UnitDetail() {
   const navigate = useNavigate();
   const { buildings, isLoading, createMeter, deleteMeter } = useBuildings();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [showAddMeter, setShowAddMeter] = useState(false);
   const [meterNumber, setMeterNumber] = useState('');
@@ -209,66 +219,128 @@ export default function UnitDetail() {
         </div>
       )}
 
-      {/* Add Meter Dialog */}
-      <Dialog open={showAddMeter} onOpenChange={setShowAddMeter}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Zähler hinzufügen</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="meterType">Zählertyp</Label>
-              <Select value={meterType} onValueChange={(v) => setMeterType(v as MeterType)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(METER_TYPE_LABELS).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Add Meter - Drawer on Mobile, Dialog on Desktop */}
+      {isMobile ? (
+        <Drawer open={showAddMeter} onOpenChange={setShowAddMeter}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Zähler hinzufügen</DrawerTitle>
+            </DrawerHeader>
+            
+            <div className="space-y-4 px-4 pb-4">
+              <div className="space-y-2">
+                <Label htmlFor="meterType-mobile">Zählertyp</Label>
+                <Select value={meterType} onValueChange={(v) => setMeterType(v as MeterType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(METER_TYPE_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="meterNumber-mobile">Zählernummer</Label>
+                <Input
+                  id="meterNumber-mobile"
+                  placeholder="z.B. 1234567890"
+                  value={meterNumber}
+                  onChange={(e) => setMeterNumber(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Nummer scannen</Label>
+                <MeterNumberScanner
+                  onNumberDetected={setMeterNumber}
+                  disabled={addingMeter}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="meterNumber">Zählernummer</Label>
-              <Input
-                id="meterNumber"
-                placeholder="z.B. 1234567890"
-                value={meterNumber}
-                onChange={(e) => setMeterNumber(e.target.value)}
-              />
+            <DrawerFooter>
+              <Button onClick={handleAddMeter} disabled={addingMeter || !meterNumber.trim()}>
+                {addingMeter ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Hinzufügen...
+                  </>
+                ) : (
+                  'Hinzufügen'
+                )}
+              </Button>
+              <DrawerClose asChild>
+                <Button variant="outline">Abbrechen</Button>
+              </DrawerClose>
+            </DrawerFooter>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <Dialog open={showAddMeter} onOpenChange={setShowAddMeter}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Zähler hinzufügen</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="meterType">Zählertyp</Label>
+                <Select value={meterType} onValueChange={(v) => setMeterType(v as MeterType)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(METER_TYPE_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="meterNumber">Zählernummer</Label>
+                <Input
+                  id="meterNumber"
+                  placeholder="z.B. 1234567890"
+                  value={meterNumber}
+                  onChange={(e) => setMeterNumber(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Nummer scannen</Label>
+                <MeterNumberScanner
+                  onNumberDetected={setMeterNumber}
+                  disabled={addingMeter}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Nummer scannen</Label>
-              <MeterNumberScanner
-                onNumberDetected={setMeterNumber}
-                disabled={addingMeter}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddMeter(false)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleAddMeter} disabled={addingMeter || !meterNumber.trim()}>
-              {addingMeter ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Hinzufügen...
-                </>
-              ) : (
-                'Hinzufügen'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddMeter(false)}>
+                Abbrechen
+              </Button>
+              <Button onClick={handleAddMeter} disabled={addingMeter || !meterNumber.trim()}>
+                {addingMeter ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Hinzufügen...
+                  </>
+                ) : (
+                  'Hinzufügen'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Delete Meter Confirmation */}
       <AlertDialog open={!!deleteMeterId} onOpenChange={() => setDeleteMeterId(null)}>
