@@ -5,18 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
 import { useBuildings } from '@/hooks/useBuildings';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { UnitWithMeters } from '@/types/database';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,7 +28,8 @@ export default function Units() {
   const [searchParams] = useSearchParams();
   const buildingId = searchParams.get('building');
   const { buildings, isLoading, deleteUnit } = useBuildings();
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleteUnitData, setDeleteUnitData] = useState<(UnitWithMeters & { building?: any }) | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   // Find the selected building
@@ -55,14 +48,16 @@ export default function Units() {
   }, [buildings, buildingId, selectedBuilding]);
 
   const handleDelete = async () => {
-    if (!deleteId) return;
+    if (!deleteUnitData) return;
     
+    setIsDeleting(true);
     try {
-      await deleteUnit.mutateAsync(deleteId);
+      await deleteUnit.mutateAsync(deleteUnitData.id);
       toast({
         title: 'Einheit gelöscht',
-        description: 'Die Einheit wurde erfolgreich gelöscht.',
+        description: `"${deleteUnitData.unit_number}" wurde erfolgreich gelöscht.`,
       });
+      setDeleteUnitData(null);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -70,7 +65,14 @@ export default function Units() {
         description: 'Die Einheit konnte nicht gelöscht werden.',
       });
     }
-    setDeleteId(null);
+    setIsDeleting(false);
+  };
+
+  // Calculate cascade counts for a unit
+  const getCascadeCounts = (unit: UnitWithMeters) => {
+    const meterCount = unit.meters.length;
+    const readingCount = unit.meters.reduce((sum, m) => sum + m.readings.length, 0);
+    return { meterCount, readingCount };
   };
 
   const pageTitle = selectedBuilding ? selectedBuilding.name : "Einheiten";
@@ -222,7 +224,7 @@ export default function Units() {
                           variant="ghost"
                           size="icon"
                           className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 mr-2 rounded-xl"
-                          onClick={() => setDeleteId(unit.id)}
+                          onClick={() => setDeleteUnitData(unit)}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -236,26 +238,24 @@ export default function Units() {
         </motion.div>
       )}
 
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent className="glass-card border-0 rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl">Einheit löschen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Diese Aktion kann nicht rückgängig gemacht werden. Alle Zähler und 
-              Ablesungen dieser Einheit werden ebenfalls gelöscht.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="gap-2">
-            <AlertDialogCancel className="rounded-xl">Abbrechen</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl"
-            >
-              Löschen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Delete Unit Confirmation */}
+      {deleteUnitData && (
+        <CascadeDeleteDialog
+          open={!!deleteUnitData}
+          onOpenChange={(open) => !open && setDeleteUnitData(null)}
+          onConfirm={handleDelete}
+          title={`"${deleteUnitData.unit_number}" löschen?`}
+          description="Diese Aktion kann nicht rückgängig gemacht werden."
+          isDeleting={isDeleting}
+          cascadeItems={(() => {
+            const counts = getCascadeCounts(deleteUnitData);
+            return [
+              { label: 'Zähler', count: counts.meterCount },
+              { label: 'Ablesung(en)', count: counts.readingCount },
+            ];
+          })()}
+        />
+      )}
     </AppLayout>
   );
 }

@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Camera, Loader2, Building2, ChevronRight, Home } from 'lucide-react';
+import { Plus, Camera, Loader2, Building2, ChevronRight, Home, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { UnitCard } from '@/components/dashboard/UnitCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useProfile } from '@/hooks/useProfile';
 import { CrossMarketingBanner } from '@/components/dashboard/CrossMarketingBanner';
 import { useProducts } from '@/hooks/useProducts';
+import { useToast } from '@/hooks/use-toast';
+import { BuildingWithUnits } from '@/types/database';
 
 // Animation variants
 const containerVariants = {
@@ -28,8 +32,12 @@ const itemVariants = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { buildings, isLoading } = useBuildings();
+  const { buildings, isLoading, deleteBuilding } = useBuildings();
   const { profile, isLoading: profileLoading } = useProfile();
+  const { toast } = useToast();
+  
+  const [deleteBuildingData, setDeleteBuildingData] = useState<BuildingWithUnits | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Preload products on app start for pricing page and cross-marketing
   useProducts('zaehler');
@@ -39,6 +47,38 @@ export default function Dashboard() {
 
   const handleAddReading = (meterId: string) => {
     navigate(`/read?meter=${meterId}`);
+  };
+
+  const handleDeleteBuilding = async () => {
+    if (!deleteBuildingData) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteBuilding.mutateAsync(deleteBuildingData.id);
+      toast({
+        title: 'Gebäude gelöscht',
+        description: `"${deleteBuildingData.name}" wurde erfolgreich gelöscht.`,
+      });
+      setDeleteBuildingData(null);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Fehler',
+        description: 'Das Gebäude konnte nicht gelöscht werden.',
+      });
+    }
+    setIsDeleting(false);
+  };
+
+  // Calculate cascade counts for a building
+  const getCascadeCounts = (building: BuildingWithUnits) => {
+    const unitCount = building.units.length;
+    const meterCount = building.units.reduce((sum, u) => sum + u.meters.length, 0);
+    const readingCount = building.units.reduce(
+      (sum, u) => sum + u.meters.reduce((mSum, m) => mSum + m.readings.length, 0),
+      0
+    );
+    return { unitCount, meterCount, readingCount };
   };
 
   // Loading state
@@ -175,28 +215,43 @@ export default function Dashboard() {
                 variants={itemVariants}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card 
-                  className="glass-card border-0 overflow-hidden cursor-pointer hover:shadow-lg transition-shadow"
-                  onClick={() => navigate(`/units?building=${building.id}`)}
-                >
+                <Card className="glass-card border-0 overflow-hidden hover:shadow-lg transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
-                        <Building2 className="w-6 h-6 text-primary-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{building.name}</h3>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {building.address && `${building.address}, `}{building.city || 'Keine Adresse'}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Home className="w-3 h-3" />
-                            {building.units.length} Einheit{building.units.length !== 1 ? 'en' : ''}
-                          </span>
+                      <div 
+                        className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => navigate(`/units?building=${building.id}`)}
+                      >
+                        <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
+                          <Building2 className="w-6 h-6 text-primary-foreground" />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground truncate">{building.name}</h3>
+                          <p className="text-sm text-muted-foreground truncate">
+                            {building.address && `${building.address}, `}{building.city || 'Keine Adresse'}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Home className="w-3 h-3" />
+                              {building.units.length} Einheit{building.units.length !== 1 ? 'en' : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                       </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteBuildingData(building);
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </motion.div>
                     </div>
                   </CardContent>
                 </Card>
@@ -230,6 +285,26 @@ export default function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delete Building Confirmation */}
+      {deleteBuildingData && (
+        <CascadeDeleteDialog
+          open={!!deleteBuildingData}
+          onOpenChange={(open) => !open && setDeleteBuildingData(null)}
+          onConfirm={handleDeleteBuilding}
+          title={`"${deleteBuildingData.name}" löschen?`}
+          description="Diese Aktion kann nicht rückgängig gemacht werden."
+          isDeleting={isDeleting}
+          cascadeItems={(() => {
+            const counts = getCascadeCounts(deleteBuildingData);
+            return [
+              { label: 'Einheit(en)', count: counts.unitCount },
+              { label: 'Zähler', count: counts.meterCount },
+              { label: 'Ablesung(en)', count: counts.readingCount },
+            ];
+          })()}
+        />
+      )}
     </AppLayout>
   );
 }

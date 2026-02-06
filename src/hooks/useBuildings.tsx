@@ -278,6 +278,21 @@ export function useBuildings() {
     },
   });
 
+  // Delete reading
+  const deleteReading = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('meter_readings')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buildings'] });
+    },
+  });
+
   return {
     buildings: buildings || [],
     isLoading,
@@ -291,5 +306,6 @@ export function useBuildings() {
     createMeter,
     deleteMeter,
     createReading,
+    deleteReading,
   };
 }

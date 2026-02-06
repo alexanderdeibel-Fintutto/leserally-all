@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Camera, Plus, Upload } from 'lucide-react';
+import { ArrowLeft, Loader2, Camera, Plus, Upload, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MeterIcon } from '@/components/meters/MeterIcon';
 import { AddReadingDialog } from '@/components/meters/AddReadingDialog';
 import { ImportReadingsWizard } from '@/components/meters/ImportReadingsWizard';
+import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
 import { useBuildings } from '@/hooks/useBuildings';
-import { METER_TYPE_LABELS, METER_TYPE_UNITS } from '@/types/database';
+import { useToast } from '@/hooks/use-toast';
+import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterReading } from '@/types/database';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import {
@@ -24,10 +26,13 @@ import {
 export default function MeterDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { buildings, isLoading } = useBuildings();
+  const { buildings, isLoading, deleteReading } = useBuildings();
+  const { toast } = useToast();
   
   const [showAddReading, setShowAddReading] = useState(false);
   const [showImportWizard, setShowImportWizard] = useState(false);
+  const [deleteReadingData, setDeleteReadingData] = useState<MeterReading | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Find meter across all buildings/units
   const allUnits = buildings.flatMap(b => b.units);
@@ -36,6 +41,27 @@ export default function MeterDetail() {
   
   // Get existing reading dates for duplicate detection
   const existingDates = meter?.readings.map(r => r.reading_date) || [];
+
+  const handleDeleteReading = async () => {
+    if (!deleteReadingData) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteReading.mutateAsync(deleteReadingData.id);
+      toast({
+        title: 'Ablesung gelöscht',
+        description: 'Die Ablesung wurde erfolgreich gelöscht.',
+      });
+      setDeleteReadingData(null);
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Fehler',
+        description: 'Die Ablesung konnte nicht gelöscht werden.',
+      });
+    }
+    setIsDeleting(false);
+  };
 
   if (isLoading) {
     return (
@@ -204,8 +230,8 @@ export default function MeterDetail() {
                 const consumption = prev ? reading.reading_value - prev.reading_value : null;
                 
                 return (
-                  <div key={reading.id} className="p-4 flex items-center justify-between">
-                    <div>
+                  <div key={reading.id} className="p-4 flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium">
                         {reading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
                       </p>
@@ -218,13 +244,21 @@ export default function MeterDetail() {
                         </p>
                       )}
                     </div>
-                    <div className="text-right">
+                    <div className="text-right shrink-0">
                       {consumption !== null && consumption > 0 && (
                         <p className="text-sm text-secondary font-medium">
                           +{consumption.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
                         </p>
                       )}
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                      onClick={() => setDeleteReadingData(reading)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 );
               })}
@@ -250,6 +284,18 @@ export default function MeterDetail() {
         meterType={meter.meter_type}
         existingDates={existingDates}
       />
+
+      {/* Delete Reading Confirmation */}
+      {deleteReadingData && (
+        <CascadeDeleteDialog
+          open={!!deleteReadingData}
+          onOpenChange={(open) => !open && setDeleteReadingData(null)}
+          onConfirm={handleDeleteReading}
+          title="Ablesung löschen?"
+          description={`Zählerstand vom ${format(new Date(deleteReadingData.reading_date), 'dd. MMMM yyyy', { locale: de })}: ${deleteReadingData.reading_value.toLocaleString('de-DE')} ${METER_TYPE_UNITS[meter.meter_type]}`}
+          isDeleting={isDeleting}
+        />
+      )}
     </AppLayout>
   );
 }

@@ -8,10 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MeterIcon } from '@/components/meters/MeterIcon';
 import { MeterNumberScanner } from '@/components/meters/MeterNumberScanner';
+import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterType } from '@/types/database';
+import { METER_TYPE_LABELS, METER_TYPE_UNITS, MeterType, MeterWithReadings } from '@/types/database';
 import {
   Select,
   SelectContent,
@@ -34,16 +35,6 @@ import {
   DrawerFooter,
   DrawerClose,
 } from '@/components/ui/drawer';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 
@@ -58,7 +49,8 @@ export default function UnitDetail() {
   const [meterNumber, setMeterNumber] = useState('');
   const [meterType, setMeterType] = useState<MeterType>('electricity');
   const [addingMeter, setAddingMeter] = useState(false);
-  const [deleteMeterId, setDeleteMeterId] = useState<string | null>(null);
+  const [deleteMeterData, setDeleteMeterData] = useState<MeterWithReadings | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Find unit across all buildings
   const allUnits = buildings.flatMap(b => b.units);
@@ -96,14 +88,16 @@ export default function UnitDetail() {
   };
 
   const handleDeleteMeter = async () => {
-    if (!deleteMeterId) return;
+    if (!deleteMeterData) return;
     
+    setIsDeleting(true);
     try {
-      await deleteMeter.mutateAsync(deleteMeterId);
+      await deleteMeter.mutateAsync(deleteMeterData.id);
       toast({
         title: 'Zähler gelöscht',
-        description: 'Der Zähler wurde erfolgreich gelöscht.',
+        description: `"${METER_TYPE_LABELS[deleteMeterData.meter_type]}" wurde erfolgreich gelöscht.`,
       });
+      setDeleteMeterData(null);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -111,7 +105,7 @@ export default function UnitDetail() {
         description: 'Der Zähler konnte nicht gelöscht werden.',
       });
     }
-    setDeleteMeterId(null);
+    setIsDeleting(false);
   };
 
   if (isLoading) {
@@ -208,7 +202,7 @@ export default function UnitDetail() {
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive ml-2"
-                    onClick={() => setDeleteMeterId(meter.id)}
+                    onClick={() => setDeleteMeterData(meter)}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -343,26 +337,19 @@ export default function UnitDetail() {
       )}
 
       {/* Delete Meter Confirmation */}
-      <AlertDialog open={!!deleteMeterId} onOpenChange={() => setDeleteMeterId(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Zähler löschen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Diese Aktion kann nicht rückgängig gemacht werden. Alle Ablesungen 
-              dieses Zählers werden ebenfalls gelöscht.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Abbrechen</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteMeter}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Löschen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {deleteMeterData && (
+        <CascadeDeleteDialog
+          open={!!deleteMeterData}
+          onOpenChange={(open) => !open && setDeleteMeterData(null)}
+          onConfirm={handleDeleteMeter}
+          title={`${METER_TYPE_LABELS[deleteMeterData.meter_type]} löschen?`}
+          description={`Zählernummer: ${deleteMeterData.meter_number}`}
+          isDeleting={isDeleting}
+          cascadeItems={[
+            { label: 'Ablesung(en)', count: deleteMeterData.readings.length },
+          ]}
+        />
+      )}
     </AppLayout>
   );
 }
