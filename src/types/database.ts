@@ -97,7 +97,8 @@ export interface Lease {
 // ═══════════════════════════════════════════════════════════════════
 export interface Meter {
   id: string;
-  unit_id: string;
+  unit_id: string | null;
+  building_id: string | null;
   meter_number: string;
   meter_type: MeterType;
   installation_date: string | null;
@@ -204,6 +205,7 @@ export interface UnitWithMeters extends Unit {
 
 export interface BuildingWithUnits extends Building {
   units: UnitWithMeters[];
+  meters?: MeterWithReadings[]; // Direct meters attached to building
 }
 
 export interface ProfileWithRoles extends Profile {

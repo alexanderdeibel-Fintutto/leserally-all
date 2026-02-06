@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Building2, Hash } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Building2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -15,14 +15,13 @@ import { AddressAutocomplete, AddressData } from '@/components/address/AddressAu
 
 export default function BuildingNew() {
   const navigate = useNavigate();
-  const { createBuilding, createUnit } = useBuildings();
+  const { createBuilding } = useBuildings();
   const { profile } = useProfile();
   const { createOrganization } = useOrganization();
   const { toast } = useToast();
   
   const [name, setName] = useState('');
   const [addressData, setAddressData] = useState<AddressData | null>(null);
-  const [unitNumber, setUnitNumber] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,20 +74,13 @@ export default function BuildingNew() {
         year_built: null,
       });
       
-      // Create first unit if specified
-      if (unitNumber.trim()) {
-        await createUnit.mutateAsync({
-          building_id: newBuilding.id,
-          unit_number: unitNumber.trim(),
-        });
-      }
-      
       toast({
         title: 'Gebäude erstellt',
         description: 'Das Gebäude wurde erfolgreich angelegt.',
       });
       
-      navigate('/');
+      // Navigate to building detail to add meters
+      navigate(`/buildings/${newBuilding.id}`);
     } catch (error) {
       toast({
         variant: 'destructive',
@@ -176,34 +168,10 @@ export default function BuildingNew() {
                 )}
               </motion.div>
 
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="border-t border-border/50 pt-5 mt-5"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Hash className="w-4 h-4 text-primary" />
-                  <Label htmlFor="unitNumber" className="text-sm font-medium">
-                    Erste Einheit (optional)
-                  </Label>
-                </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Legen Sie direkt die erste Wohneinheit an
-                </p>
-                <Input
-                  id="unitNumber"
-                  placeholder="z.B. Wohnung 1 oder EG links"
-                  value={unitNumber}
-                  onChange={(e) => setUnitNumber(e.target.value)}
-                  className="h-12 rounded-xl border-border/50 bg-background/50 focus:bg-background transition-all"
-                />
-              </motion.div>
-
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35 }}
+                transition={{ delay: 0.25 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
               >

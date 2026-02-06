@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Camera, Loader2, Building2, ChevronRight, Home, Trash2 } from 'lucide-react';
+import { Plus, Camera, Loader2, Building2, ChevronRight, Gauge, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { UnitCard } from '@/components/dashboard/UnitCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
@@ -42,13 +41,6 @@ export default function Dashboard() {
   // Preload products on app start for pricing page and cross-marketing
   useProducts('zaehler');
 
-  // Flatten all units across buildings
-  const allUnits = buildings.flatMap(b => b.units);
-
-  const handleAddReading = (meterId: string) => {
-    navigate(`/read?meter=${meterId}`);
-  };
-
   const handleDeleteBuilding = async () => {
     if (!deleteBuildingData) return;
     
@@ -72,13 +64,12 @@ export default function Dashboard() {
 
   // Calculate cascade counts for a building
   const getCascadeCounts = (building: BuildingWithUnits) => {
-    const unitCount = building.units.length;
-    const meterCount = building.units.reduce((sum, u) => sum + u.meters.length, 0);
-    const readingCount = building.units.reduce(
-      (sum, u) => sum + u.meters.reduce((mSum, m) => mSum + m.readings.length, 0),
+    const meterCount = building.meters?.length || 0;
+    const readingCount = (building.meters || []).reduce(
+      (sum, m) => sum + m.readings.length,
       0
     );
-    return { unitCount, meterCount, readingCount };
+    return { meterCount, readingCount };
   };
 
   // Loading state
@@ -220,7 +211,7 @@ export default function Dashboard() {
                     <div className="flex items-center gap-4">
                       <div 
                         className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
-                        onClick={() => navigate(`/units?building=${building.id}`)}
+                        onClick={() => navigate(`/buildings/${building.id}`)}
                       >
                         <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center shrink-0">
                           <Building2 className="w-6 h-6 text-primary-foreground" />
@@ -232,8 +223,8 @@ export default function Dashboard() {
                           </p>
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
-                              <Home className="w-3 h-3" />
-                              {building.units.length} Einheit{building.units.length !== 1 ? 'en' : ''}
+                              <Gauge className="w-3 h-3" />
+                              {(building.meters?.length || 0)} Zähler
                             </span>
                           </div>
                         </div>
@@ -258,30 +249,6 @@ export default function Dashboard() {
               </motion.div>
             ))}
 
-            {/* Section: Units with Meters */}
-            {allUnits.length > 0 && (
-              <>
-                <motion.div variants={itemVariants} className="mt-6 mb-2">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                    <Home className="w-4 h-4" />
-                    Einheiten mit Zählern
-                  </h2>
-                </motion.div>
-
-                {allUnits.filter(unit => unit.meters.length > 0).map((unit, index) => (
-                  <motion.div
-                    key={unit.id}
-                    variants={itemVariants}
-                    transition={{ delay: (buildings.length + index) * 0.05 }}
-                  >
-                    <UnitCard 
-                      unit={unit} 
-                      onAddReading={handleAddReading}
-                    />
-                  </motion.div>
-                ))}
-              </>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -298,7 +265,6 @@ export default function Dashboard() {
           cascadeItems={(() => {
             const counts = getCascadeCounts(deleteBuildingData);
             return [
-              { label: 'Einheit(en)', count: counts.unitCount },
               { label: 'Zähler', count: counts.meterCount },
               { label: 'Ablesung(en)', count: counts.readingCount },
             ];

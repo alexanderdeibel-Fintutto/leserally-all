@@ -12,8 +12,9 @@ const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Units = lazy(() => import("./pages/Units"));
 const BuildingNew = lazy(() => import("./pages/BuildingNew"));
+const BuildingDetail = lazy(() => import("./pages/BuildingDetail"));
+const Units = lazy(() => import("./pages/Units"));
 const UnitDetail = lazy(() => import("./pages/UnitDetail"));
 const MeterDetail = lazy(() => import("./pages/MeterDetail"));
 const ReadMeter = lazy(() => import("./pages/ReadMeter"));
@@ -70,8 +71,9 @@ function AppRoutes() {
 
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/units" element={<ProtectedRoute><Units /></ProtectedRoute>} />
         <Route path="/buildings/new" element={<ProtectedRoute><BuildingNew /></ProtectedRoute>} />
+        <Route path="/buildings/:id" element={<ProtectedRoute><BuildingDetail /></ProtectedRoute>} />
+        <Route path="/units" element={<ProtectedRoute><Units /></ProtectedRoute>} />
         <Route path="/units/new" element={<ProtectedRoute><BuildingNew /></ProtectedRoute>} />
         <Route path="/units/:id" element={<ProtectedRoute><UnitDetail /></ProtectedRoute>} />
         <Route path="/meters/:id" element={<ProtectedRoute><MeterDetail /></ProtectedRoute>} />

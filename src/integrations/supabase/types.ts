@@ -350,33 +350,43 @@ export type Database = {
       }
       meters: {
         Row: {
+          building_id: string | null
           created_at: string | null
           id: string
           installation_date: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
-          unit_id: string
+          unit_id: string | null
           updated_at: string | null
         }
         Insert: {
+          building_id?: string | null
           created_at?: string | null
           id?: string
           installation_date?: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
-          unit_id: string
+          unit_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          building_id?: string | null
           created_at?: string | null
           id?: string
           installation_date?: string | null
           meter_number?: string
           meter_type?: Database["public"]["Enums"]["meter_type"]
-          unit_id?: string
+          unit_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "meters_building_id_fkey"
+            columns: ["building_id"]
+            isOneToOne: false
+            referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meters_unit_id_fkey"
             columns: ["unit_id"]

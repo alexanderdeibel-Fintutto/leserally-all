@@ -48,13 +48,25 @@ export function useBuildings() {
 
       const unitIds = (unitsData || []).map(u => u.id);
 
-      // Fetch meters
-      const { data: metersData, error: metersError } = await supabase
+      // Fetch meters (both from units and directly from buildings)
+      const { data: metersFromUnits, error: metersUnitsError } = await supabase
         .from('meters')
         .select('*')
         .in('unit_id', unitIds);
 
-      if (metersError) throw metersError;
+      if (metersUnitsError) throw metersUnitsError;
+
+      const { data: metersFromBuildings, error: metersBuildingsError } = await supabase
+        .from('meters')
+        .select('*')
+        .in('building_id', buildingIds);
+
+      if (metersBuildingsError) throw metersBuildingsError;
+
+      // Combine all meters
+      const metersData = [...(metersFromUnits || []), ...(metersFromBuildings || [])].filter(
+        (m, i, arr) => arr.findIndex(x => x.id === m.id) === i // deduplicate
+      );
 
       const meterIds = (metersData || []).map(m => m.id);
 
@@ -67,28 +79,35 @@ export function useBuildings() {
 
       if (readingsError) throw readingsError;
 
+      // Helper function to add readings to meters
+      const addReadingsToMeter = (meter: Meter): MeterWithReadings => {
+        const meterReadings = (readingsData as MeterReading[] || []).filter(r => r.meter_id === meter.id);
+        const lastReading = meterReadings[0];
+        const previousReading = meterReadings[1];
+        const consumption = lastReading && previousReading 
+          ? lastReading.reading_value - previousReading.reading_value 
+          : undefined;
+
+        return {
+          ...meter,
+          readings: meterReadings,
+          lastReading,
+          consumption,
+        };
+      };
+
       // Combine data
       const result: BuildingWithUnits[] = (buildingsData as Building[]).map(building => {
         const buildingUnits = (unitsData as Unit[] || []).filter(u => u.building_id === building.id);
         
+        // Get meters directly attached to building
+        const directBuildingMeters = (metersData as Meter[] || [])
+          .filter(m => m.building_id === building.id && !m.unit_id)
+          .map(addReadingsToMeter);
+        
         const unitsWithMeters: UnitWithMeters[] = buildingUnits.map(unit => {
           const unitMeters = (metersData as Meter[] || []).filter(m => m.unit_id === unit.id);
-          
-          const metersWithReadings: MeterWithReadings[] = unitMeters.map(meter => {
-            const meterReadings = (readingsData as MeterReading[] || []).filter(r => r.meter_id === meter.id);
-            const lastReading = meterReadings[0];
-            const previousReading = meterReadings[1];
-            const consumption = lastReading && previousReading 
-              ? lastReading.reading_value - previousReading.reading_value 
-              : undefined;
-
-            return {
-              ...meter,
-              readings: meterReadings,
-              lastReading,
-              consumption,
-            };
-          });
+          const metersWithReadings: MeterWithReadings[] = unitMeters.map(addReadingsToMeter);
 
           return {
             ...unit,
@@ -100,6 +119,7 @@ export function useBuildings() {
         return {
           ...building,
           units: unitsWithMeters,
+          meters: directBuildingMeters,
         };
       });
 
@@ -200,14 +220,19 @@ export function useBuildings() {
     },
   });
 
-  // Create meter
+  // Create meter (can be attached to building directly or to a unit)
   const createMeter = useMutation({
     mutationFn: async (data: { 
-      unit_id: string; 
+      building_id?: string;
+      unit_id?: string; 
       meter_number: string; 
       meter_type: MeterType;
       installation_date?: string;
     }) => {
+      if (!data.building_id && !data.unit_id) {
+        throw new Error('Meter must be attached to a building or unit');
+      }
+      
       const { data: newMeter, error } = await supabase
         .from('meters')
         .insert(data)
