@@ -276,11 +276,13 @@ export default function ReadMeter() {
       setTimeout(() => {
         navigate(`/meters/${selectedMeterId}`);
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Save reading error:', error);
+      const errorMessage = error?.message || error?.toString() || 'Unbekannter Fehler';
       toast({
         variant: 'destructive',
         title: 'Fehler',
-        description: 'Die Ablesung konnte nicht gespeichert werden.',
+        description: `Die Ablesung konnte nicht gespeichert werden: ${errorMessage}`,
       });
     }
 
