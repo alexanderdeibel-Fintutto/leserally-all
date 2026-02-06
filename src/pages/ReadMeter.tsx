@@ -76,18 +76,36 @@ export default function ReadMeter() {
   const startCamera = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
       });
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
       setShowCamera(true);
+      
+      // Wait for next tick to ensure video element is mounted
+      setTimeout(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+          
+          // Explicitly play the video - important for mobile
+          try {
+            await videoRef.current.play();
+          } catch (playError) {
+            console.error('Video play error:', playError);
+          }
+        }
+      }, 100);
     } catch (error) {
+      console.error('Camera access error:', error);
       toast({
         variant: 'destructive',
         title: 'Kamera-Fehler',
-        description: 'Die Kamera konnte nicht gestartet werden.',
+        description: error instanceof Error 
+          ? `Kamerazugriff fehlgeschlagen: ${error.message}`
+          : 'Die Kamera konnte nicht gestartet werden.',
       });
     }
   };
@@ -323,6 +341,12 @@ export default function ReadMeter() {
             ref={videoRef}
             autoPlay
             playsInline
+            muted
+            onLoadedMetadata={(e) => {
+              // Ensure video plays when metadata is loaded
+              const video = e.currentTarget;
+              video.play().catch(console.error);
+            }}
             className="absolute inset-0 w-full h-full object-cover"
           />
           
