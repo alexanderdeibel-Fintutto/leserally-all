@@ -140,7 +140,7 @@ export function AddMeterDialog({ open, onOpenChange, buildingId }: AddMeterDialo
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetAndClose(); else onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Neuen Zähler anlegen</DialogTitle>
         </DialogHeader>
