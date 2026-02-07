@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Loader2, Building2, Trash2, Gauge, ChevronRight, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Building2, Trash2, Gauge, ChevronRight, AlertCircle, Home, Link2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { CascadeDeleteDialog } from '@/components/ui/cascade-delete-dialog';
 import { MeterIcon } from '@/components/meters/MeterIcon';
 import { useBuildings } from '@/hooks/useBuildings';
 import { useToast } from '@/hooks/use-toast';
-import { MeterWithReadings, METER_TYPE_LABELS, METER_TYPE_UNITS } from '@/types/database';
+import { MeterWithReadings, METER_TYPE_LABELS, METER_TYPE_UNITS, UnitWithMeters } from '@/types/database';
+import { Badge } from '@/components/ui/badge';
 import { AddMeterDialog } from '@/components/meters/AddMeterDialog';
 
 const containerVariants = {
@@ -25,6 +26,82 @@ const itemVariants = {
   show: { opacity: 1, y: 0, scale: 1 },
 };
 
+// Reusable meter card component
+function MeterCard({ meter, index, badge, onNavigate, onDelete }: {
+  meter: MeterWithReadings;
+  index: number;
+  badge: React.ReactNode;
+  onNavigate: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <motion.div
+      key={meter.id}
+      variants={itemVariants}
+      layout
+      exit={{ opacity: 0, scale: 0.9, x: -100 }}
+      transition={{ delay: index * 0.03 }}
+    >
+      <Card className="overflow-hidden glass-card border-0 card-elevated">
+        <CardContent className="p-0">
+          <div className="flex items-center">
+            <div 
+              className="flex items-center gap-4 flex-1 p-4 group cursor-pointer"
+              onClick={onNavigate}
+            >
+              <motion.div 
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center"
+              >
+                <MeterIcon type={meter.meter_type} className="w-6 h-6 text-primary" />
+              </motion.div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {METER_TYPE_LABELS[meter.meter_type]}
+                  </p>
+                  {badge}
+                  {meter.replaced_by && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-muted-foreground/30">
+                      <Link2 className="w-3 h-3 mr-1" />Verkettet
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground truncate">
+                  Nr. {meter.meter_number}
+                </p>
+                {meter.lastReading && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent text-accent-foreground">
+                      {meter.lastReading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <motion.div
+                whileHover={{ x: 5 }}
+                className="text-muted-foreground group-hover:text-primary transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </motion.div>
+            </div>
+            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 mr-2 rounded-xl"
+                onClick={onDelete}
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </motion.div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+}
+
 export default function BuildingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -36,7 +113,11 @@ export default function BuildingDetail() {
   const [showAddMeter, setShowAddMeter] = useState(false);
 
   const building = buildings.find(b => b.id === id);
-  const meters = building?.meters || [];
+  const buildingMeters = building?.meters || [];
+  const unitMeters: Array<MeterWithReadings & { unitName: string; unitId: string }> = (building?.units || []).flatMap(
+    unit => unit.meters.map(m => ({ ...m, unitName: unit.unit_number, unitId: unit.id }))
+  );
+  const allMetersCount = buildingMeters.length + unitMeters.length;
 
   const handleDeleteMeter = async () => {
     if (!deleteMeterData) return;
@@ -142,7 +223,7 @@ export default function BuildingDetail() {
       </motion.div>
 
       {/* Meters list */}
-      {meters.length === 0 ? (
+      {allMetersCount === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -164,68 +245,55 @@ export default function BuildingDetail() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="space-y-3"
+          className="space-y-4"
         >
-          <AnimatePresence mode="popLayout">
-            {meters.map((meter, index) => (
-              <motion.div
-                key={meter.id}
-                variants={itemVariants}
-                layout
-                exit={{ opacity: 0, scale: 0.9, x: -100 }}
-                transition={{ delay: index * 0.03 }}
-              >
-                <Card className="overflow-hidden glass-card border-0 card-elevated">
-                  <CardContent className="p-0">
-                    <div className="flex items-center">
-                      <div 
-                        className="flex items-center gap-4 flex-1 p-4 group cursor-pointer"
-                        onClick={() => navigate(`/meters/${meter.id}`)}
-                      >
-                        <motion.div 
-                          whileHover={{ scale: 1.1, rotate: 5 }}
-                          className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center"
-                        >
-                          <MeterIcon type={meter.meter_type} className="w-6 h-6 text-primary" />
-                        </motion.div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground group-hover:text-primary transition-colors">
-                            {METER_TYPE_LABELS[meter.meter_type]}
-                          </p>
-                          <p className="text-sm text-muted-foreground truncate">
-                            Nr. {meter.meter_number}
-                          </p>
-                          {meter.lastReading && (
-                            <div className="flex items-center gap-2 mt-1">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-accent text-accent-foreground">
-                                {meter.lastReading.reading_value.toLocaleString('de-DE')} {METER_TYPE_UNITS[meter.meter_type]}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <motion.div
-                          whileHover={{ x: 5 }}
-                          className="text-muted-foreground group-hover:text-primary transition-colors"
-                        >
-                          <ChevronRight className="w-5 h-5" />
-                        </motion.div>
-                      </div>
-                      <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 mr-2 rounded-xl"
-                          onClick={() => setDeleteMeterData(meter)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </motion.div>
-                    </div>
-                  </CardContent>
-                </Card>
+          {/* Building-level meters */}
+          {buildingMeters.length > 0 && (
+            <>
+              <motion.div variants={itemVariants} className="mb-1">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  Gebäudezähler ({buildingMeters.length})
+                </h3>
               </motion.div>
-            ))}
-          </AnimatePresence>
+              <AnimatePresence mode="popLayout">
+                {buildingMeters.map((meter, index) => (
+                  <MeterCard
+                    key={meter.id}
+                    meter={meter}
+                    index={index}
+                    badge={<Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/30 text-primary"><Building2 className="w-3 h-3 mr-1" />Gebäude</Badge>}
+                    onNavigate={() => navigate(`/meters/${meter.id}`)}
+                    onDelete={() => setDeleteMeterData(meter)}
+                  />
+                ))}
+              </AnimatePresence>
+            </>
+          )}
+
+          {/* Unit-level meters */}
+          {unitMeters.length > 0 && (
+            <>
+              <motion.div variants={itemVariants} className="mb-1 mt-2">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                  <Home className="w-4 h-4" />
+                  Einheitenzähler ({unitMeters.length})
+                </h3>
+              </motion.div>
+              <AnimatePresence mode="popLayout">
+                {unitMeters.map((meter, index) => (
+                  <MeterCard
+                    key={meter.id}
+                    meter={meter}
+                    index={index}
+                    badge={<Badge variant="outline" className="text-[10px] px-1.5 py-0 border-secondary/50 text-secondary-foreground"><Home className="w-3 h-3 mr-1" />{meter.unitName}</Badge>}
+                    onNavigate={() => navigate(`/meters/${meter.id}`)}
+                    onDelete={() => setDeleteMeterData(meter)}
+                  />
+                ))}
+              </AnimatePresence>
+            </>
+          )}
         </motion.div>
       )}
 

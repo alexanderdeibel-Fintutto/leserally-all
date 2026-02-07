@@ -224,7 +224,7 @@ export default function Dashboard() {
                           <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Gauge className="w-3 h-3" />
-                              {(building.meters?.length || 0)} Zähler
+                              {(building.meters?.length || 0) + (building.units?.reduce((sum, u) => sum + (u.meters?.length || 0), 0) || 0)} Zähler
                             </span>
                           </div>
                         </div>
