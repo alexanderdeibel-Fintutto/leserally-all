@@ -1,20 +1,33 @@
 import { useState, useRef } from 'react';
-import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
+export interface DetectedReading {
+  date: string;
+  value: number;
+}
+
+interface ScanResult {
+  meterNumber: string | null;
+  confidence: number;
+  readings: DetectedReading[];
+  meterName: string | null;
+}
+
 interface MeterNumberScannerProps {
   onNumberDetected: (meterNumber: string) => void;
+  onReadingsDetected?: (readings: DetectedReading[], meterName: string | null) => void;
   disabled?: boolean;
 }
 
-export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberScannerProps) {
+export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disabled }: MeterNumberScannerProps) {
   const [scanning, setScanning] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const [result, setResult] = useState<{ meterNumber: string; confidence: number } | null>(null);
+  const [result, setResult] = useState<ScanResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   
@@ -27,18 +40,15 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
     setResult(null);
 
     try {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
       if (!validTypes.includes(file.type)) {
         throw new Error('Nur JPEG, PNG, WebP und PDF werden unterstützt');
       }
 
-      // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
         throw new Error('Datei zu groß. Maximum 10MB.');
       }
 
-      // Convert to base64
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result as string);
@@ -46,14 +56,12 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
         reader.readAsDataURL(file);
       });
 
-      // Show preview for images
       if (file.type.startsWith('image/')) {
         setPreview(base64);
       } else {
         setPreview(null);
       }
 
-      // Call edge function
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) {
         throw new Error('Nicht angemeldet');
@@ -67,17 +75,25 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
         throw new Error(response.error.message || 'Verarbeitung fehlgeschlagen');
       }
 
-      const data = response.data;
+      const data = response.data as ScanResult;
+
+      setResult(data);
 
       if (data.meterNumber) {
-        setResult({ meterNumber: data.meterNumber, confidence: data.confidence });
         onNumberDetected(data.meterNumber);
         toast({
           title: 'Zählernummer erkannt',
           description: `Erkannte Nummer: ${data.meterNumber} (${data.confidence}% Konfidenz)`,
         });
-      } else {
-        setError(data.error || 'Keine Zählernummer gefunden');
+      }
+
+      // Notify about detected readings regardless of meter number
+      if (data.readings?.length > 0 && onReadingsDetected) {
+        onReadingsDetected(data.readings, data.meterName);
+      }
+
+      if (!data.meterNumber && (!data.readings || data.readings.length === 0)) {
+        setError('Keine Zählernummer und keine Zählerstände gefunden.');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Verarbeitung fehlgeschlagen';
@@ -97,21 +113,11 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
     if (file) {
       processFile(file);
     }
-    // Reset input
     e.target.value = '';
   };
 
-  const openCamera = () => {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.click();
-    }
-  };
-
-  const openFilePicker = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
+  const openCamera = () => cameraInputRef.current?.click();
+  const openFilePicker = () => fileInputRef.current?.click();
 
   const clearPreview = () => {
     setPreview(null);
@@ -119,10 +125,12 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
     setError(null);
   };
 
+  const hasReadingsOnly = result && !result.meterNumber && result.readings?.length > 0;
+  const hasNumberAndReadings = result && result.meterNumber && result.readings?.length > 0;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        {/* Camera button */}
         <Button
           type="button"
           variant="outline"
@@ -138,7 +146,6 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
           Foto
         </Button>
         
-        {/* Document button */}
         <Button
           type="button"
           variant="outline"
@@ -155,7 +162,6 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
         </Button>
       </div>
 
-      {/* Hidden file inputs - using direct click instead of label for better compatibility */}
       <input
         ref={cameraInputRef}
         type="file"
@@ -174,7 +180,6 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
         disabled={disabled || scanning}
       />
 
-      {/* Preview and results */}
       <AnimatePresence>
         {(preview || result || error || scanning) && (
           <motion.div
@@ -184,13 +189,14 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
             className="overflow-hidden"
           >
             <div className={cn(
-              "relative rounded-lg border p-3",
-              result && "border-success/50 bg-success/5",
-              error && "border-destructive/50 bg-destructive/5",
+              "relative rounded-lg border p-3 space-y-2",
+              result?.meterNumber && "border-success/50 bg-success/5",
+              hasReadingsOnly && "border-primary/50 bg-primary/5",
+              error && !hasReadingsOnly && "border-destructive/50 bg-destructive/5",
               scanning && "border-primary/50 bg-primary/5"
             )}>
               {preview && (
-                <div className="relative mb-3">
+                <div className="relative mb-2">
                   <img
                     src={preview}
                     alt="Vorschau"
@@ -215,11 +221,11 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
                 </div>
               )}
 
-              {result && (
+              {result?.meterNumber && (
                 <div className="flex items-center gap-2 text-sm">
                   <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                   <div>
-                    <span className="font-medium text-success">Erkannt: </span>
+                    <span className="font-medium text-success">Zählernummer erkannt: </span>
                     <span className="font-mono">{result.meterNumber}</span>
                     <span className="text-muted-foreground ml-2">
                       ({result.confidence}% sicher)
@@ -228,7 +234,39 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
                 </div>
               )}
 
-              {error && !scanning && (
+              {/* Readings detected message */}
+              {hasReadingsOnly && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-sm">
+                    <FileSpreadsheet className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <span className="font-medium text-primary">
+                        {result.readings.length} Zählerstände erkannt
+                      </span>
+                      {result.meterName && (
+                        <span className="text-muted-foreground ml-1">
+                          ({result.meterName})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">
+                    Keine Zählernummer gefunden. Bitte geben Sie die Zählernummer manuell ein – 
+                    die erkannten Zählerstände werden nach dem Anlegen automatisch importiert.
+                  </p>
+                </div>
+              )}
+
+              {hasNumberAndReadings && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileSpreadsheet className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-primary font-medium">
+                    + {result.readings.length} Zählerstände erkannt (werden importiert)
+                  </span>
+                </div>
+              )}
+
+              {error && !scanning && !hasReadingsOnly && (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
@@ -240,7 +278,7 @@ export function MeterNumberScanner({ onNumberDetected, disabled }: MeterNumberSc
       </AnimatePresence>
 
       <p className="text-xs text-muted-foreground">
-        Fotografieren Sie den Zähler oder laden Sie ein Dokument mit der Zählernummer hoch.
+        Fotografieren Sie den Zähler oder laden Sie ein Dokument hoch – Zählernummer und Zählerstände werden automatisch erkannt.
       </p>
     </div>
   );

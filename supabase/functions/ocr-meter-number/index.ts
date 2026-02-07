@@ -5,7 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Max file size: 10MB
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
 serve(async (req) => {
@@ -14,7 +13,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -23,7 +21,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse and validate request body
     let body;
     try {
       body = await req.json();
@@ -34,9 +31,8 @@ serve(async (req) => {
       );
     }
 
-    const { file, fileType } = body;
-    
-    // Validate file exists and is a string
+    const { file } = body;
+
     if (!file || typeof file !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Ungültige Datei' }),
@@ -44,7 +40,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate file format (images and PDFs)
     const validFormats = /^data:(image\/(jpeg|jpg|png|webp)|application\/pdf);base64,/;
     if (!validFormats.test(file)) {
       return new Response(
@@ -53,7 +48,6 @@ serve(async (req) => {
       );
     }
 
-    // Check file size
     const base64Data = file.split(',')[1];
     const sizeInBytes = (base64Data.length * 3) / 4;
     if (sizeInBytes > MAX_FILE_SIZE_BYTES) {
@@ -73,35 +67,39 @@ serve(async (req) => {
     }
 
     const isPdf = file.startsWith('data:application/pdf');
-    
-    const systemPrompt = `Du bist ein OCR-Spezialist für die Erkennung von Zählernummern aus Dokumenten und Fotos.
+
+    // Enhanced prompt: extract BOTH meter number AND readings
+    const systemPrompt = `Du bist ein OCR-Spezialist für die Analyse von Zähler-Dokumenten und Fotos.
 
 AUFGABE:
-Analysiere das ${isPdf ? 'Dokument' : 'Bild'} und finde die Zählernummer.
+Analysiere das ${isPdf ? 'Dokument' : 'Bild'} und extrahiere:
+1. Die Zählernummer (falls vorhanden)
+2. Alle Zählerstände/Ablesungen (falls vorhanden)
 
-WO FINDET MAN ZÄHLERNUMMERN:
+ZÄHLERNUMMER finden:
 - Auf dem Zähler selbst (Typenschild, Barcode-Bereich)
-- In Verträgen und Dokumenten (als "Zählernummer", "Zähler-Nr.", "Meter ID", "Gerätenummer")
+- In Verträgen ("Zählernummer", "Zähler-Nr.", "Meter ID", "Gerätenummer")
 - Auf Ablesebelegen und Rechnungen
-- Auf Einbauprotokollen
+- Typische Formate: 12345678, DE-12345678, E-1234567, 1-234-567-890
 
-TYPISCHE FORMATE:
-- Reine Zahlen: 12345678
-- Mit Buchstaben-Präfix: DE-12345678, E-1234567
-- Mit Sonderzeichen: 1-234-567-890
+ZÄHLERSTÄNDE finden:
+- Tabellarische Auflistungen mit Datum und Wert
+- Historische Verbrauchsdaten
+- Ableseprotokolle mit Ständen
 
 REGELN:
-1. Suche nach einer eindeutigen Geräte-/Zählernummer
-2. Ignoriere Zählerstände (die aktuellen Verbrauchswerte)
-3. Ignoriere Kundennummern und Vertragsnummern
-4. Gib die Nummer exakt wie gefunden zurück (inkl. Bindestriche, Buchstaben)
-5. Wenn mehrere Nummern gefunden werden, wähle die wahrscheinlichste Zählernummer
+1. Unterscheide klar zwischen Zählernummer (Geräte-ID) und Zählerstand (Verbrauchswert)
+2. Ignoriere Kundennummern und Vertragsnummern
+3. Gib die Zählernummer exakt wie gefunden zurück
+4. Zählerstände: Datum im Format YYYY-MM-DD, Wert als Zahl
 
 WICHTIG: Antworte NUR mit einem JSON-Objekt im Format:
-{"meterNumber": "<nummer>", "confidence": <0-100>}
-
-Falls keine Zählernummer gefunden wird:
-{"meterNumber": null, "confidence": 0}`;
+{
+  "meterNumber": "<nummer>" oder null,
+  "confidence": <0-100>,
+  "readings": [{"date": "YYYY-MM-DD", "value": 12345.67}] oder [],
+  "meterName": "<bezeichnung des zählers falls erkennbar>" oder null
+}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -122,26 +120,26 @@ Falls keine Zählernummer gefunden wird:
               },
               {
                 type: "text",
-                text: "Bitte finde und extrahiere die Zählernummer aus diesem Dokument/Bild.",
+                text: "Analysiere dieses Dokument/Bild. Extrahiere die Zählernummer UND alle Zählerstände/Ablesungen.",
               },
             ],
           },
         ],
-        max_tokens: 300,
+        max_tokens: 4096,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit erreicht. Bitte versuchen Sie es später erneut." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      
+
       return new Response(
         JSON.stringify({ error: "Die Verarbeitung ist fehlgeschlagen. Bitte versuchen Sie es erneut." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -159,7 +157,6 @@ Falls keine Zählernummer gefunden wird:
       );
     }
 
-    // Parse the JSON response
     let result;
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -176,21 +173,22 @@ Falls keine Zählernummer gefunden wird:
       );
     }
 
-    if (!result.meterNumber) {
-      return new Response(
-        JSON.stringify({ 
-          error: "Keine Zählernummer gefunden",
-          meterNumber: null,
-          confidence: 0 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Sanitize readings
+    const readings = Array.isArray(result.readings)
+      ? result.readings
+          .filter((r: { date?: string; value?: number }) => r.date && r.value !== undefined)
+          .map((r: { date: string; value: number }) => ({
+            date: String(r.date),
+            value: Number(r.value),
+          }))
+      : [];
 
     return new Response(
       JSON.stringify({
-        meterNumber: String(result.meterNumber).trim(),
-        confidence: Number(result.confidence) || 85,
+        meterNumber: result.meterNumber ? String(result.meterNumber).trim() : null,
+        confidence: Number(result.confidence) || 0,
+        readings,
+        meterName: result.meterName ? String(result.meterName).trim() : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
