@@ -102,6 +102,7 @@ export interface Meter {
   meter_number: string;
   meter_type: MeterType;
   installation_date: string | null;
+  replaced_by: string | null;
   created_at: string;
   updated_at: string;
 }

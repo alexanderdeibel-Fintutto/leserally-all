@@ -356,6 +356,7 @@ export type Database = {
           installation_date: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
+          replaced_by: string | null
           unit_id: string | null
           updated_at: string | null
         }
@@ -366,6 +367,7 @@ export type Database = {
           installation_date?: string | null
           meter_number: string
           meter_type: Database["public"]["Enums"]["meter_type"]
+          replaced_by?: string | null
           unit_id?: string | null
           updated_at?: string | null
         }
@@ -376,6 +378,7 @@ export type Database = {
           installation_date?: string | null
           meter_number?: string
           meter_type?: Database["public"]["Enums"]["meter_type"]
+          replaced_by?: string | null
           unit_id?: string | null
           updated_at?: string | null
         }
@@ -385,6 +388,13 @@ export type Database = {
             columns: ["building_id"]
             isOneToOne: false
             referencedRelation: "buildings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meters_replaced_by_fkey"
+            columns: ["replaced_by"]
+            isOneToOne: false
+            referencedRelation: "meters"
             referencedColumns: ["id"]
           },
           {

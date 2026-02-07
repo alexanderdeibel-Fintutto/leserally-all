@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X, FileSpreadsheet } from 'lucide-react';
+import { Camera, FileText, Loader2, CheckCircle2, AlertCircle, X, FileSpreadsheet, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -11,20 +11,29 @@ export interface DetectedReading {
   value: number;
 }
 
+export interface MeterEra {
+  label: string;
+  readings: DetectedReading[];
+  swapNote: string | null;
+}
+
 interface ScanResult {
   meterNumber: string | null;
   confidence: number;
   readings: DetectedReading[];
   meterName: string | null;
+  meterSwapDetected: boolean;
+  eras: MeterEra[];
 }
 
 interface MeterNumberScannerProps {
   onNumberDetected: (meterNumber: string) => void;
   onReadingsDetected?: (readings: DetectedReading[], meterName: string | null) => void;
+  onMeterSwapDetected?: (eras: MeterEra[], meterName: string | null) => void;
   disabled?: boolean;
 }
 
-export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disabled }: MeterNumberScannerProps) {
+export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, onMeterSwapDetected, disabled }: MeterNumberScannerProps) {
   const [scanning, setScanning] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -76,7 +85,6 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
       }
 
       const data = response.data as ScanResult;
-
       setResult(data);
 
       if (data.meterNumber) {
@@ -87,12 +95,15 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
         });
       }
 
-      // Notify about detected readings regardless of meter number
-      if (data.readings?.length > 0 && onReadingsDetected) {
+      // Handle meter swap detection
+      if (data.meterSwapDetected && data.eras?.length > 1 && onMeterSwapDetected) {
+        onMeterSwapDetected(data.eras, data.meterName);
+      } else if (data.readings?.length > 0 && onReadingsDetected) {
+        // No swap, pass flat readings
         onReadingsDetected(data.readings, data.meterName);
       }
 
-      if (!data.meterNumber && (!data.readings || data.readings.length === 0)) {
+      if (!data.meterNumber && !data.meterSwapDetected && (!data.readings || data.readings.length === 0)) {
         setError('Keine Zählernummer und keine Zählerstände gefunden.');
       }
     } catch (err) {
@@ -125,8 +136,10 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
     setError(null);
   };
 
-  const hasReadingsOnly = result && !result.meterNumber && result.readings?.length > 0;
-  const hasNumberAndReadings = result && result.meterNumber && result.readings?.length > 0;
+  const hasReadingsOnly = result && !result.meterNumber && !result.meterSwapDetected && result.readings?.length > 0;
+  const hasNumberAndReadings = result && result.meterNumber && result.readings?.length > 0 && !result.meterSwapDetected;
+  const hasSwap = result?.meterSwapDetected && result.eras?.length > 1;
+  const totalReadings = result?.eras?.reduce((sum, era) => sum + era.readings.length, 0) || result?.readings?.length || 0;
 
   return (
     <div className="space-y-3">
@@ -190,9 +203,10 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
           >
             <div className={cn(
               "relative rounded-lg border p-3 space-y-2",
-              result?.meterNumber && "border-success/50 bg-success/5",
+              result?.meterNumber && !hasSwap && "border-success/50 bg-success/5",
               hasReadingsOnly && "border-primary/50 bg-primary/5",
-              error && !hasReadingsOnly && "border-destructive/50 bg-destructive/5",
+              hasSwap && "border-amber-500/50 bg-amber-500/5",
+              error && !hasReadingsOnly && !hasSwap && "border-destructive/50 bg-destructive/5",
               scanning && "border-primary/50 bg-primary/5"
             )}>
               {preview && (
@@ -221,7 +235,7 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
                 </div>
               )}
 
-              {result?.meterNumber && (
+              {result?.meterNumber && !hasSwap && (
                 <div className="flex items-center gap-2 text-sm">
                   <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                   <div>
@@ -234,7 +248,39 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
                 </div>
               )}
 
-              {/* Readings detected message */}
+              {/* Meter swap detected */}
+              {hasSwap && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <ArrowRightLeft className="w-4 h-4 text-amber-600 shrink-0" />
+                    <div>
+                      <span className="font-medium text-amber-700 dark:text-amber-400">
+                        Zählerwechsel erkannt!
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">
+                    {result.eras.length} Zähler-Zeiträume mit insgesamt {totalReadings} Ablesungen gefunden.
+                    Bitte geben Sie die aktuelle Zählernummer ein – alle Zeiträume werden als verkettete Zähler angelegt.
+                  </p>
+                  <div className="pl-6 space-y-1">
+                    {result.eras.map((era, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <div className={cn(
+                          "w-2 h-2 rounded-full shrink-0",
+                          i === result.eras.length - 1 ? "bg-primary" : "bg-muted-foreground/50"
+                        )} />
+                        <span className="text-muted-foreground">
+                          {era.label} – {era.readings.length} Ablesungen
+                          {era.swapNote && <span className="italic ml-1">({era.swapNote})</span>}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Readings only (no swap) */}
               {hasReadingsOnly && (
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 text-sm">
@@ -266,7 +312,7 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
                 </div>
               )}
 
-              {error && !scanning && !hasReadingsOnly && (
+              {error && !scanning && !hasReadingsOnly && !hasSwap && (
                 <div className="flex items-center gap-2 text-sm text-destructive">
                   <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{error}</span>
@@ -278,7 +324,7 @@ export function MeterNumberScanner({ onNumberDetected, onReadingsDetected, disab
       </AnimatePresence>
 
       <p className="text-xs text-muted-foreground">
-        Fotografieren Sie den Zähler oder laden Sie ein Dokument hoch – Zählernummer und Zählerstände werden automatisch erkannt.
+        Fotografieren Sie den Zähler oder laden Sie ein Dokument hoch – Zählernummer, Zählerstände und Zählerwechsel werden automatisch erkannt.
       </p>
     </div>
   );

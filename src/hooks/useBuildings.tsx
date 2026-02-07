@@ -228,6 +228,7 @@ export function useBuildings() {
       meter_number: string; 
       meter_type: MeterType;
       installation_date?: string;
+      replaced_by?: string;
     }) => {
       if (!data.building_id && !data.unit_id) {
         throw new Error('Meter must be attached to a building or unit');

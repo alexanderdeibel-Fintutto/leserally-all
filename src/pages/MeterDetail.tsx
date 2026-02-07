@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { ArrowLeft, Loader2, Camera, Plus, Upload, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,8 @@ import { de } from 'date-fns/locale';
 import {
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -36,12 +39,50 @@ export default function MeterDetail() {
 
   // Find meter across all buildings/units (including building-level meters)
   const allUnits = buildings.flatMap(b => b.units);
-  const unitMeter = allUnits.flatMap(u => u.meters).find(m => m.id === id);
-  const buildingMeter = buildings.flatMap(b => b.meters || []).find(m => m.id === id);
-  const meter = unitMeter || buildingMeter;
+  const allMeters = [
+    ...allUnits.flatMap(u => u.meters),
+    ...buildings.flatMap(b => b.meters || []),
+  ].filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+  
+  const meter = allMeters.find(m => m.id === id);
   const unit = allUnits.find(u => u.meters.some(m => m.id === id));
   const building = buildings.find(b => (b.meters || []).some(m => m.id === id)) || 
                    buildings.find(b => b.units.some(u => u.meters.some(m => m.id === id)));
+
+  // Find linked meters (meter swap chain)
+  const getLinkedMeters = () => {
+    if (!meter) return [];
+    const chain: typeof allMeters = [];
+    
+    // Find predecessors (meters that have replaced_by pointing to this or later meters)
+    const findPredecessors = (meterId: string) => {
+      const predecessor = allMeters.find(m => m.replaced_by === meterId);
+      if (predecessor) {
+        findPredecessors(predecessor.id);
+        chain.push(predecessor);
+      }
+    };
+    
+    findPredecessors(meter.id);
+    chain.push(meter);
+    
+    // Find successors
+    const findSuccessors = (currentMeter: typeof meter) => {
+      if (currentMeter?.replaced_by) {
+        const successor = allMeters.find(m => m.id === currentMeter.replaced_by);
+        if (successor) {
+          chain.push(successor);
+          findSuccessors(successor);
+        }
+      }
+    };
+    
+    findSuccessors(meter);
+    return chain.filter((m, i, arr) => arr.findIndex(x => x.id === m.id) === i);
+  };
+
+  const linkedMeters = getLinkedMeters();
+  const hasLinkedMeters = linkedMeters.length > 1;
   
   // Get existing reading dates for duplicate detection
   const existingDates = meter?.readings.map(r => r.reading_date) || [];
@@ -107,6 +148,56 @@ export default function MeterDetail() {
     };
   }).reverse();
 
+  // Build combined chart data across all linked meters (for consumption view)
+  const buildCombinedConsumptionData = () => {
+    if (!hasLinkedMeters) return null;
+    
+    const allReadings: Array<{ date: string; value: number; meterId: string; meterLabel: string }> = [];
+    
+    linkedMeters.forEach((m, idx) => {
+      const label = idx === linkedMeters.length - 1 ? 'Aktuell' : `Zähler ${idx + 1}`;
+      [...m.readings].reverse().forEach(r => {
+        allReadings.push({
+          date: r.reading_date,
+          value: r.reading_value,
+          meterId: m.id,
+          meterLabel: label,
+        });
+      });
+    });
+
+    // Sort chronologically
+    allReadings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Calculate consumption between consecutive readings within the same meter
+    const consumptionEntries: Array<{ date: string; consumption: number; meterLabel: string; isSwap?: boolean }> = [];
+    
+    for (let i = 1; i < allReadings.length; i++) {
+      const curr = allReadings[i];
+      const prev = allReadings[i - 1];
+      
+      if (curr.meterId === prev.meterId) {
+        consumptionEntries.push({
+          date: format(new Date(curr.date), 'MM/yy', { locale: de }),
+          consumption: curr.value - prev.value,
+          meterLabel: curr.meterLabel,
+        });
+      } else {
+        // Meter swap point - add marker
+        consumptionEntries.push({
+          date: format(new Date(curr.date), 'MM/yy', { locale: de }),
+          consumption: 0,
+          meterLabel: 'Wechsel',
+          isSwap: true,
+        });
+      }
+    }
+
+    return consumptionEntries;
+  };
+
+  const combinedConsumption = buildCombinedConsumptionData();
+
   return (
     <AppLayout>
       <Button
@@ -166,11 +257,82 @@ export default function MeterDetail() {
         </Card>
       )}
 
-      {/* Chart */}
+      {/* Combined Consumption Chart (for linked meters) */}
+      {hasLinkedMeters && combinedConsumption && combinedConsumption.length > 1 && (
+        <Card className="mb-4">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              Gesamtverbrauch über {linkedMeters.length} Zähler
+              <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                Zählerwechsel
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={combinedConsumption}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 11 }}
+                    className="text-muted-foreground"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                    }}
+                    formatter={(value: number, _name: string, props: { payload: { meterLabel: string; isSwap?: boolean } }) => {
+                      if (props.payload.isSwap) return ['Zählerwechsel', ''];
+                      return [
+                        `${value.toLocaleString('de-DE')} ${METER_TYPE_UNITS[meter.meter_type]}`,
+                        props.payload.meterLabel,
+                      ];
+                    }}
+                  />
+                  <Bar
+                    dataKey="consumption"
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Linked meters legend */}
+            <div className="flex flex-wrap gap-2 mt-3">
+              {linkedMeters.map((m, i) => (
+                <button
+                  key={m.id}
+                  onClick={() => m.id !== id && navigate(`/meters/${m.id}`)}
+                  className={cn(
+                    "text-xs px-2 py-1 rounded-full border transition-colors",
+                    m.id === id 
+                      ? "border-primary bg-primary/10 text-primary font-medium" 
+                      : "border-border text-muted-foreground hover:border-primary/50 hover:text-primary cursor-pointer"
+                  )}
+                >
+                  {i === linkedMeters.length - 1 ? '● ' : '○ '}
+                  {m.meter_number}
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Single Meter Chart */}
       {chartData.length > 1 && (
         <Card className="mb-4">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Verbrauchsverlauf</CardTitle>
+            <CardTitle className="text-base">
+              {hasLinkedMeters ? 'Aktueller Zählerstand' : 'Verbrauchsverlauf'}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-48">
