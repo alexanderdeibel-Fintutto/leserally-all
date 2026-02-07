@@ -35,7 +35,7 @@ export function useOrganization() {
       // Now we can fetch the org since profile is linked
       const { data: newOrg, error: fetchError } = await supabase
         .from('organizations')
-        .select()
+        .select('id, name, type, subscription_plan, created_at')
         .eq('id', orgId)
         .single();
 
@@ -56,7 +56,7 @@ export function useOrganization() {
         .from('organizations')
         .update(data)
         .eq('id', id)
-        .select()
+        .select('id, name, type, subscription_plan, created_at')
         .single();
 
       if (error) throw error;

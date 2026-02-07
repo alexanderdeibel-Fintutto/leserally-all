@@ -35,7 +35,7 @@ export function useProfile() {
       if (profileData.organization_id) {
         const { data: orgData } = await supabase
           .from('organizations')
-          .select('*')
+          .select('id, name, type, subscription_plan, created_at')
           .eq('id', profileData.organization_id)
           .single();
         organization = orgData as Organization;
