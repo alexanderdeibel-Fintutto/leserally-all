@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
-import { Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import appLogo from '@/assets/logo.svg';
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -50,9 +50,9 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           <motion.div 
             whileHover={{ scale: 1.1, rotate: 10 }}
             whileTap={{ scale: 0.95 }}
-            className="w-14 h-14 rounded-2xl gradient-animated flex items-center justify-center shadow-glow float"
+            className="w-14 h-14 rounded-2xl overflow-hidden shadow-glow float"
           >
-            <Zap className="w-8 h-8 text-primary-foreground" />
+            <img src={appLogo} alt="Fintutto Logo" className="w-full h-full" />
           </motion.div>
           <span className="text-3xl font-extrabold text-gradient">Fintutto</span>
         </motion.div>

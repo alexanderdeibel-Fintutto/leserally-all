@@ -1,7 +1,8 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Camera, LogOut, Zap } from 'lucide-react';
+import { Home, Camera, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import appLogo from '@/assets/logo.svg';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -34,9 +35,9 @@ export function AppLayout({ children, title, showBack }: AppLayoutProps) {
             <motion.div 
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 rounded-xl gradient-animated flex items-center justify-center shadow-glow"
+              className="w-10 h-10 rounded-xl overflow-hidden shadow-glow"
             >
-              <Zap className="w-5 h-5 text-primary-foreground" />
+              <img src={appLogo} alt="Fintutto Logo" className="w-full h-full" />
             </motion.div>
             <span className="text-xl font-bold text-gradient">Fintutto</span>
           </Link>
